@@ -424,6 +424,37 @@ exactly; a Delaunay-and-filter approach is wrong on 13 of 124 real building
 footprints and 2.7% of road area, and those errors are exactly the open edges a
 slicer complains about.
 
+### Smoothing a mesh is not smoothing a contour
+
+Two different problems, so two different controls. Contour blur is in pixels and
+runs before marching squares, where the noise that matters is stair-stepping in
+the line. The mesh reads the elevation grid directly and its problem is
+different: bilinear sampling is continuous but not smooth, so once the mesh grid
+is finer than the source, every source cell shows up as a flat facet with a
+crease around it — visible as blockiness on a printed model, worst where the data
+is coarse.
+
+Mesh smoothing is therefore specified in **ground metres**, not pixels, so it
+means the same thing at any mesh resolution. Measured at Croabh Haven, 30 m data
+meshed at 400 across 3.59 km (9.0 m cells), scoring faceting as the mean absolute
+second difference across a row:
+
+```
+smoothing   faceting   model height
+     0 m      0.0849       26.8 mm
+    10 m      0.0669  79%  26.5 mm
+    20 m      0.0478  56%  26.4 mm
+    40 m      0.0303  36%  26.1 mm
+    80 m      0.0170  20%  25.2 mm
+```
+
+Twenty metres halves the faceting and costs 1.5% of the relief. It runs before
+the water is flattened, because water levels are taken from this surface and the
+terrain is recessed to match — blurring afterwards would round the water off and
+lift the recess back through its own slab. Below about 0.8 of a cell the box-blur
+approximation rounds its radius to zero, so anything smaller is reported as
+having had no effect rather than silently doing nothing.
+
 ## Water
 
 Lakes and the sea can be more than an outline.

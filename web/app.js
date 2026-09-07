@@ -369,7 +369,11 @@ function spec() {
     layers,
     contours_on: document.querySelector('#layers input[value=contours]').checked,
     width_mm: +$('widthMm').value,
-    height_mm: sizeLocked ? null : +$('heightMm').value,
+    height_mm: SIZES[0].locked ? null : +$('heightMm').value,
+    model_w_mm: +$('modelW').value,
+    model_h_mm: SIZES[1].locked ? null : +$('modelH').value,
+    mesh_smooth_m: +$('meshSmooth').value,
+    water_style: $('waterStyle').value,
     margin_mm: +$('marginMm').value,
     frame: $('frame').checked,
     labels: $('labelsOn').checked,
@@ -926,14 +930,14 @@ function meshEstimate() {
   const nl = n, ns = Math.max(2, Math.round(n * short / long));
   const tris = Math.round(2 * (nl - 1) * (ns - 1) * 1.01);
   const stl = tris * 50 / 1e6;
-  const cell = (long / (nl - 1)) * (+$('widthMm').value / w);
+  const cell = (long / (nl - 1)) * (+$('modelW').value / w);
   $('meshEstimate').innerHTML =
     `${nl} × ${ns} → <b>${tris.toLocaleString()}</b> triangles · `
     + `STL ~${stl.toFixed(1)} MB · cell ${cell.toFixed(2)} mm`
     + (cell < +$('nozzleMm').value
         ? ' <span style="color:#ddb257">· finer than the nozzle</span>' : '');
 }
-['meshN', 'widthMm', 'nozzleMm', 'widthKm', 'heightKm', 'aspect'].forEach((id) =>
+['meshN', 'modelW', 'nozzleMm', 'widthKm', 'heightKm', 'aspect'].forEach((id) =>
   $(id).addEventListener('input', meshEstimate));
 
 async function generateMesh() {
@@ -1128,36 +1132,46 @@ function loadLayout() {
   applyLayout();
 }
 
-/* --------------------------------------------------------------- model size
-   Height follows the capture's aspect while the lock is closed; opening it
-   lets the model be stretched. */
-let sizeLocked = true;
+/* ----------------------------------------------------------------- sizing
+   The drawing and the model are sized independently — sharing one pair of
+   fields made "Model size" mean the page in SVG mode. Each pair keeps the
+   capture's aspect while its lock is closed; opening it allows a stretch. */
+const SIZES = [
+  { w: 'widthMm', h: 'heightMm', lock: 'sizeLock', locked: true },
+  { w: 'modelW', h: 'modelH', lock: 'modelLock', locked: true },
+];
 
-function syncModelHeight() {
-  if (!sizeLocked) return;
+function syncSize(sz) {
+  if (!sz.locked) return;
   const { w, h } = dims();
-  $('heightMm').value = (+$('widthMm').value * h / w).toFixed(1);
+  $(sz.h).value = (+$(sz.w).value * h / w).toFixed(1);
 }
 
+function syncModelHeight() { SIZES.forEach(syncSize); }
+
 function applyLock() {
-  $('sizeLock').classList.toggle('on', sizeLocked);
-  $('sizeLock').textContent = sizeLocked ? '\u{1F512}' : '\u{1F513}';
-  $('sizeLock').title = sizeLocked
-    ? 'aspect locked to the capture — click to unlock'
-    : 'aspect free — click to lock to the capture';
-  $('heightMm').readOnly = sizeLocked;
-  syncModelHeight();
+  for (const sz of SIZES) {
+    $(sz.lock).classList.toggle('on', sz.locked);
+    $(sz.lock).textContent = sz.locked ? '\u{1F512}' : '\u{1F513}';
+    $(sz.lock).title = sz.locked
+      ? 'aspect locked to the capture — click to unlock'
+      : 'aspect free — click to lock to the capture';
+    $(sz.h).readOnly = sz.locked;
+    syncSize(sz);
+  }
   meshEstimate();
 }
 
-$('sizeLock').addEventListener('click', () => { sizeLocked = !sizeLocked; applyLock(); save(); });
-['widthMm', 'widthKm', 'heightKm', 'aspect'].forEach((id) =>
+SIZES.forEach((sz) => $(sz.lock).addEventListener('click', () => {
+  sz.locked = !sz.locked; applyLock(); save();
+}));
+['widthMm', 'modelW', 'widthKm', 'heightKm', 'aspect'].forEach((id) =>
   $(id).addEventListener('input', () => { syncModelHeight(); }));
 
 /* ------------------------------------------------------------------ persist */
 const FIELDS = ['widthKm', 'heightKm', 'aspect', 'rot', 'demSource', 'osmSource', 'res', 'interval',
   'indexEvery', 'levelMin', 'levelMax', 'blur', 'simplify', 'smooth', 'minLen',
-  'widthMm', 'heightMm', 'marginMm', 'waterHatch', 'hatchSpacing', 'hatchAngle', 'seaLevel', 'seaSource',
+  'widthMm', 'heightMm', 'modelW', 'modelH', 'meshSmooth', 'waterStyle', 'marginMm', 'waterHatch', 'hatchSpacing', 'hatchAngle', 'seaLevel', 'seaSource',
   'meshN', 'zExag', 'baseMm', 'nozzleMm', 'buildingsMm', 'roadsMm', 'meshFormat',
   'waterMm', 'flatTol', 'maxHeight', 'backplateW', 'backplateH', 'backplateMm'];
 const CHECKS = ['frame', 'labelsOn', 'seaFill', 'indexOn', 'waterMask', 'includeSea',
@@ -1168,7 +1182,8 @@ function save() {
   FIELDS.forEach((f) => o[f] = $(f).value);
   CHECKS.forEach((c) => { o[c] = $(c).checked; });
   o.omode = outputMode();
-  o.sizeLocked = sizeLocked;
+  o.sizeLocked = SIZES[0].locked;
+  o.modelLocked = SIZES[1].locked;
   o.layers = [...document.querySelectorAll('#layers input:checked')].map((c) => c.value);
   o.selectable = [...document.querySelectorAll('#selectable input:checked')].map((c) => c.value);
   try { localStorage.setItem(STORE, JSON.stringify(o)); } catch (e) { }
@@ -1181,7 +1196,8 @@ function load() {
     state.lat = o.lat ?? state.lat; state.lon = o.lon ?? state.lon;
     FIELDS.forEach((f) => { if (o[f] != null && o[f] !== '') $(f).value = o[f]; });
     CHECKS.forEach((c) => { if (o[c] != null) $(c).checked = o[c]; });
-    if (o.sizeLocked != null) sizeLocked = o.sizeLocked;
+    if (o.sizeLocked != null) SIZES[0].locked = o.sizeLocked;
+    if (o.modelLocked != null) SIZES[1].locked = o.modelLocked;
     if (o.omode) {
       const r = document.querySelector(`#outputMode input[value="${o.omode}"]`);
       if (r) r.checked = true;

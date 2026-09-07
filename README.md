@@ -126,6 +126,10 @@ Click or drag over paths in the preview to build a route. It lands in its own
 
 ### SVG for plotting
 
+**Drawing size** is the finished size on the page, before the margin. It is
+independent of the 3D model size — the two outputs are sized separately, so
+setting up one does not quietly resize the other.
+
 **Interval** is the main density control — halving it roughly doubles the drawing
 time. **Index every** sends every Nth contour to its own layer for a heavier pen,
 which is the usual way of making a contour map readable.
@@ -145,9 +149,21 @@ vpype read map.svg linemerge linesort write --page-size a3 plot.svg
 
 ### 3D mesh
 
+**Model size** is the printed footprint of the terrain, not counting any
+backplate, and is independent of the SVG drawing size. **Backplate** adds an
+optional larger plate underneath, with its own size, so the model can tuck under
+the border of a deep frame.
+
 **Resolution** is the mesh grid, deliberately separate from elevation sampling —
 sample the terrain as finely as you like and mesh it at something printable. The
 predicted triangle count and file size update as you drag it.
+
+**Smooth** is measured in ground metres and exists because sampling a coarse
+source onto a finer mesh shows the source cells as flat facets. On 30 m data
+meshed at 9 m cells, 20 m of smoothing halves the faceting for 1.5% of the
+relief. It cannot smooth below about one mesh cell and says so rather than
+doing nothing quietly. This is separate from the contour smoothing, which is in
+pixels and only affects the SVG.
 
 **Exaggeration** multiplies the height; at 1× a real landscape looks
 disappointingly flat, and 2–4× is the usual range. **Max height** caps the
@@ -155,7 +171,12 @@ finished model and quietly reduces the exaggeration to fit, telling you what it
 used.
 
 Water is flattened to one level per body and comes out as a separate object you
-can print in another colour, as do **buildings** and **roads**. **Flat if slope
+can print in another colour, as do **buildings** and **roads**. **Water shape**
+chooses between following the water's real outline — a shoreline as crisp as the
+map data, and far cheaper, 2,896 triangles against 419,404 at Croabh Haven — and
+rasterising it onto the mesh grid, which is stepped but watertight whatever the
+outline does. The app falls back to the grid on its own if the smooth version
+cannot be built cleanly, and tells you when it does. **Flat if slope
 below** is what stops a mountain stream being levelled into a hole and a ridge —
 a body only counts as flat if the ground under it falls by less than that
 fraction of its own length.

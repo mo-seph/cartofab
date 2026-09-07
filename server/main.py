@@ -106,6 +106,11 @@ class Spec(BaseModel):
     nozzle_mm: float = Field(0.4, gt=0.01, le=5)
     mesh_water: bool = True
     water_style: str = "polygon"              # polygon | grid
+    # Smoothing the elevation before meshing, in ground metres. Separate from
+    # the contour blur: that one is in pixels and tuned for line work, while
+    # this exists because bilinear sampling of a coarse source shows the source
+    # cells as flat facets once the mesh grid is finer than the data.
+    mesh_smooth_m: float = Field(0.0, ge=0, le=500)
     flat_tolerance: float = Field(0.02, ge=0, le=1)   # slope counted as flat
     water_mm: float = Field(0.4, gt=0, le=20)   # slab thickness, own object
     max_height_mm: float = Field(0.0, ge=0, le=500)   # 0 = no limit
@@ -118,8 +123,13 @@ class Spec(BaseModel):
     buildings_mm: float = Field(2.0, gt=0, le=50)
     roads_mm: float = Field(0.6, gt=0, le=50)
 
-    width_mm: float = Field(200.0, gt=5, le=2000)
+    # The drawing and the model are sized independently. Sharing one field
+    # made "Model size" mean the page in SVG mode, which is exactly the kind of
+    # double meaning that caused confusion before.
+    width_mm: float = Field(200.0, gt=5, le=2000)      # SVG drawing width
     height_mm: float | None = None            # None = follow the capture aspect
+    model_w_mm: float = Field(200.0, gt=5, le=2000)    # mesh model width
+    model_h_mm: float | None = None
     margin_mm: float = Field(0.0, ge=0, le=200)
     frame: bool = True
     labels: bool = False
@@ -650,6 +660,21 @@ def render_mesh(spec: Spec, c: dict) -> tuple[list, dict]:
 
     Z, xs, ys = mesh.resample(
         dem, nx, ny, fill=spec.sea_level if spec.include_sea else None)
+    # Smooth before anything reads the surface. Water is flattened from Z and
+    # the terrain is recessed to match, so blurring afterwards would round the
+    # water off and lift the recess back through the slab.
+    if spec.mesh_smooth_m > 0 and Z.shape[1] > 1:
+        cell = (xs[-1] - xs[0]) / max(1, Z.shape[1] - 1)
+        sigma_px = spec.mesh_smooth_m / max(cell, 1e-9)
+        # the box-blur approximation rounds its radius down to zero below
+        # about 0.8 cells, so small values would otherwise do nothing quietly
+        if sigma_px >= 0.8:
+            Z = contours.blur(Z, sigma_px)
+        else:
+            warnings.append(
+                f"mesh smoothing of {spec.mesh_smooth_m:g} m is below one mesh "
+                f"cell ({cell:.1f} m) and had no effect — raise it, or lower "
+                "the mesh resolution")
     if spec.level_min is not None:
         Z = np.maximum(Z, spec.level_min)
     if spec.level_max is not None:
@@ -737,7 +762,7 @@ def render_mesh(spec: Spec, c: dict) -> tuple[list, dict]:
                 "share": round(share, 4)})
 
     # ---- vertical scale -------------------------------------------------
-    scale = spec.width_mm / region.width_m
+    scale = spec.model_w_mm / region.width_m
     relief_m = float(Z.max() - Z.min())
     exag = spec.z_exaggeration
     if spec.max_height_mm and relief_m > 1e-6:
@@ -773,13 +798,14 @@ def render_mesh(spec: Spec, c: dict) -> tuple[list, dict]:
     for _, m, _ in flowing:
         Z[mesh.dilate(m, 1)] -= recess_m
 
-    frame = mesh.Frame(region, spec.width_mm, exag,
+    frame = mesh.Frame(region, spec.model_w_mm, exag,
                        spec.base_mm + plate_t, float(Z.min()),
-                       height_mm=spec.height_mm)
+                       height_mm=spec.model_h_mm)
     objects = []
     if spec.backplate:
-        model_h = spec.height_mm or spec.width_mm * region.height_m / region.width_m
-        if (spec.backplate_w_mm < spec.width_mm - 1e-6
+        model_h = (spec.model_h_mm
+                   or spec.model_w_mm * region.height_m / region.width_m)
+        if (spec.backplate_w_mm < spec.model_w_mm - 1e-6
                 or spec.backplate_h_mm < model_h - 1e-6):
             warnings.append("the backplate is smaller than the model, so the "
                             "terrain will overhang it")
@@ -946,9 +972,9 @@ def render_mesh(spec: Spec, c: dict) -> tuple[list, dict]:
     stats = {
         "grid": [int(nx), int(ny)],
         "cell_mm": round(cell_mm, 3),
-        "size_mm": [round(spec.width_mm, 1),
-                    round(spec.height_mm or
-                          spec.width_mm * region.height_m / region.width_m, 1),
+        "size_mm": [round(spec.model_w_mm, 1),
+                    round(spec.model_h_mm or
+                          spec.model_w_mm * region.height_m / region.width_m, 1),
                     round(float(max(o.verts[:, 2].max() for o in objects)), 1)],
         "objects": [{"name": o.name, "triangles": int(o.triangles),
                      "colour": list(o.colour),
