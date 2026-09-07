@@ -122,6 +122,9 @@ class Spec(BaseModel):
     mesh_roads: bool = False
     buildings_mm: float = Field(2.0, gt=0, le=50)
     roads_mm: float = Field(0.6, gt=0, le=50)
+    mesh_trip: bool = False                   # raise the selected trip
+    trip_mm: float = Field(1.0, gt=0, le=50)  # how far it stands proud
+    trip_w_mm: float = Field(1.5, gt=0, le=50)  # its width on the model
 
     # The drawing and the model are sized independently. Sharing one field
     # made "Model size" mean the page in SVG mode, which is exactly the kind of
@@ -155,6 +158,10 @@ class Spec(BaseModel):
                 want.add("roads")
             if self.mesh_water:
                 want.add("water")
+            if self.mesh_trip and self.trip_ids:
+                # a trip is a set of feature ids with no layer of their own, so
+                # fetch whatever the trip was allowed to be picked from
+                want |= set(self.selectable)
         # Deriving the sea from OSM needs the line itself. Without this the
         # option silently does nothing, which is how the mesh lost its roads.
         if self._needs_coastline():
@@ -770,7 +777,8 @@ def render_mesh(spec: Spec, c: dict) -> tuple[list, dict]:
         # the backplate, the water recess (which drops the floor by exactly one
         # slab thickness), and whichever of buildings or roads stands tallest.
         proud = max(spec.buildings_mm if spec.mesh_buildings else 0.0,
-                    spec.roads_mm if spec.mesh_roads else 0.0)
+                    spec.roads_mm if spec.mesh_roads else 0.0,
+                    spec.trip_mm if spec.mesh_trip else 0.0)
         room = (spec.max_height_mm - spec.base_mm
                 - (spec.backplate_mm if spec.backplate else 0.0)
                 - (spec.water_mm if water_polys else 0.0)
@@ -957,6 +965,34 @@ def render_mesh(spec: Spec, c: dict) -> tuple[list, dict]:
                 densify_m=max(1.0, cell_m * 0.5))
             if o:
                 objects.append(o)
+
+    if spec.mesh_trip:
+        # The trip is the same draped extrusion as a road, but its width is
+        # given on the model rather than on the ground: it is a drawn route,
+        # not a real object, so it should look the same at any capture scale.
+        want = set(spec.trip_ids)
+        w = max(spec.trip_w_mm, 2 * spec.nozzle_mm) / frame.scale
+        bufs = []
+        for f in c["osm"]:
+            if f.get("id") not in want:
+                continue
+            pts = f.get("pts")          # numpy: test for None, never truthiness
+            if pts is None or len(pts) < 2:
+                continue
+            bufs.append(shapely.linestrings(pts).buffer(w / 2, cap_style=2))
+        if not bufs:
+            warnings.append("no trip is selected, so nothing was raised for it "
+                            "— pick a route in the SVG preview first")
+        else:
+            merged = _print_clean(_union(bufs), frame, spec.nozzle_mm)
+            if merged is not None:
+                o = mesh.extrude(
+                    [merged], ground_under, frame, spec.trip_mm, "trip",
+                    (0.85, 0.36, 0.22), sink_mm=0.3,
+                    sample=mesh.bilinear_sampler(Z, xs, ys),
+                    densify_m=max(1.0, cell_m * 0.5))
+                if o:
+                    objects.append(o)
 
     # Repair any holes left in the extruded parts before reporting.
     repaired = 0

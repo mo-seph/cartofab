@@ -373,6 +373,9 @@ function spec() {
     model_w_mm: +$('modelW').value,
     model_h_mm: SIZES[1].locked ? null : +$('modelH').value,
     mesh_smooth_m: +$('meshSmooth').value,
+    mesh_trip: $('meshTrip').checked,
+    trip_mm: +$('tripMm').value,
+    trip_w_mm: +$('tripWmm').value,
     water_style: $('waterStyle').value,
     margin_mm: +$('marginMm').value,
     frame: $('frame').checked,
@@ -572,6 +575,9 @@ function wirePreview() {
   applyTrip();
 }
 $('clearTrip').addEventListener('click', () => { state.trip.clear(); applyTrip(); });
+document.querySelectorAll('[data-view]').forEach((b) =>
+  b.addEventListener('click', () => window.MeshViewer
+    && window.MeshViewer.setView(b.dataset.view)));
 $('zoomFit').addEventListener('click', () => {
   const pane = $('preview');
   pane.classList.toggle('actual');
@@ -909,7 +915,7 @@ function applyMode() {
   $('preview').classList.toggle('hidden', m !== 'svg');
   $('mesh3d').classList.toggle('hidden', m !== 'mesh');
   $('tripHint').textContent = m === 'mesh'
-    ? 'drag to orbit · scroll to zoom'
+    ? 'drag orbit · shift-drag pan · scroll zoom · double-click to re-centre'
     : 'click or drag over paths to build a trip';
   $('export').textContent = m === 'mesh' ? 'Download mesh' : 'Download SVG';
   if (m === 'mesh' && window.MeshViewer) setTimeout(() => window.MeshViewer.resize(), 60);
@@ -1144,7 +1150,9 @@ const SIZES = [
 function syncSize(sz) {
   if (!sz.locked) return;
   const { w, h } = dims();
-  $(sz.h).value = (+$(sz.w).value * h / w).toFixed(1);
+  // trailing ".0" costs a character the field cannot spare
+  const v = +$(sz.w).value * h / w;
+  $(sz.h).value = Number.isInteger(+v.toFixed(1)) ? String(Math.round(v)) : v.toFixed(1);
 }
 
 function syncModelHeight() { SIZES.forEach(syncSize); }
@@ -1173,9 +1181,10 @@ const FIELDS = ['widthKm', 'heightKm', 'aspect', 'rot', 'demSource', 'osmSource'
   'indexEvery', 'levelMin', 'levelMax', 'blur', 'simplify', 'smooth', 'minLen',
   'widthMm', 'heightMm', 'modelW', 'modelH', 'meshSmooth', 'waterStyle', 'marginMm', 'waterHatch', 'hatchSpacing', 'hatchAngle', 'seaLevel', 'seaSource',
   'meshN', 'zExag', 'baseMm', 'nozzleMm', 'buildingsMm', 'roadsMm', 'meshFormat',
-  'waterMm', 'flatTol', 'maxHeight', 'backplateW', 'backplateH', 'backplateMm'];
+  'waterMm', 'flatTol', 'maxHeight', 'backplateW', 'backplateH', 'backplateMm',
+  'tripMm', 'tripWmm'];
 const CHECKS = ['frame', 'labelsOn', 'seaFill', 'indexOn', 'waterMask', 'includeSea',
-  'meshWater', 'meshBuildings', 'meshRoads', 'backplate'];
+  'meshWater', 'meshBuildings', 'meshRoads', 'meshTrip', 'backplate'];
 
 function save() {
   const o = { lat: state.lat, lon: state.lon, zoom: map.getZoom() };

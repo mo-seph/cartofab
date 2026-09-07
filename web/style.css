@@ -59,22 +59,49 @@ button:disabled{opacity:.45;cursor:default}
 .lockbtn{flex:0 0 24px;padding:2px 0;font-size:11px;line-height:1;
   background:#232830;border:1px solid var(--line);border-radius:5px;cursor:pointer}
 .lockbtn.on{background:#2f4456;border-color:var(--accent)}
-.modes{display:flex;gap:6px;margin-bottom:10px}
-.modes label{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;
-  background:#232830;border:1px solid var(--line);border-radius:6px;
-  padding:6px 4px;font-size:11.5px;cursor:pointer;user-select:none}
-.modes label:has(:checked){background:#2f4456;border-color:var(--accent);color:#fff}
-.modes input{margin:0}
-section[data-mode].hidden{display:none}
+/* any element can be mode-specific, not just sections and rows */
+[data-mode].hidden{display:none}
 
-/* Output-specific controls read as a group: everything above them describes
-   the capture and applies to both outputs, everything inside depends on which
-   one you picked. */
-section.outgrp{background:var(--outbg,rgba(120,150,190,.06));
-  border-left:2px solid var(--outaccent,#6fb3e0);
-  padding-left:10px;margin-left:-2px}
-#panel section.outgrp h2{color:var(--outaccent,#6fb3e0)}
-section.actions{background:rgba(120,150,190,.03)}
+/* ---- output tabs -------------------------------------------------------
+   Everything above these describes the capture and feeds both outputs;
+   everything below belongs to the one you picked. Tabs say that on their own,
+   so the panel needs no other marking. */
+.outputs{border-top:0;padding-top:0}
+.modes.tabs{display:flex;gap:2px;margin:0}
+.modes.tabs label{flex:1;display:flex;align-items:center;justify-content:center;
+  padding:7px 4px;font-size:11.5px;cursor:pointer;user-select:none;
+  color:var(--muted);background:#181b21;
+  border:1px solid var(--line);border-bottom:0;
+  border-radius:6px 6px 0 0;position:relative;top:1px}
+.modes.tabs label:hover{color:var(--text)}
+.modes.tabs input{position:absolute;opacity:0;pointer-events:none}
+/* the selected tab joins the body below it by covering the shared border */
+.modes.tabs label:has(:checked){background:var(--tabbg,#232830);color:#fff;
+  font-weight:600;box-shadow:inset 0 2px 0 var(--accent)}
+.tabbody{background:var(--tabbg,#232830);border:1px solid var(--line);
+  border-radius:0 6px 6px 6px;padding:12px 11px 4px}
+.tabbody .actions{background:none;padding:0;border:0}
+.viewbtns{display:inline-flex;gap:3px}
+.viewbtns .mini{padding:2px 6px}
+
+/* ---- subsections -------------------------------------------------------
+   Groups of settings that belong together, told apart by a rule and a label
+   rather than by spacing alone. */
+#panel section.sub{border-top:1px solid var(--line);margin:12px -11px 0;
+  padding:10px 11px 2px}
+#panel section.sub:first-of-type{margin-top:10px}
+#panel .sub h3{font-size:10px;text-transform:uppercase;letter-spacing:.09em;
+  color:var(--muted);margin:0 0 8px;font-weight:600}
+/* checkbox rows size their own label — do not force them into the column,
+   or "flat water" wraps onto two lines beside its own tick box */
+#panel .sub .row:not(.check) label:not(:has(input)){flex:0 0 98px}
+/* a label with its own tick box inside sizes to its content, or the base
+   88px column clips it — "Index every" wrapped under its own checkbox */
+#panel .sub .row label:has(input){flex:none}
+/* Rows holding two numbers plus a lock have no room for a wide label: at 98px
+   the boxes collapse to 45px and "200" is clipped to "20". */
+#panel .sub .row.size label{flex:0 0 88px}
+.row input[type=number]{min-width:54px}
 
 /* The installed extracts and the download offer are reference material, not
    something you set on every render. */

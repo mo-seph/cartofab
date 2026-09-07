@@ -48,10 +48,10 @@ double-click one to collapse the pane beside it. Sizes and visibility persist,
 which matters when the browser is already giving up horizontal space to a
 sidebar.
 
-The panel runs top to bottom in the order you work: everything above the
-**Generate** button describes *what you are capturing* and applies to both
-outputs; everything below it is specific to the output you chose, and is tinted
-to say so.
+The panel runs top to bottom in the order you work. Everything above the
+**SVG for plotting / 3D mesh** tabs describes *what you are capturing* and feeds
+both outputs; everything inside the tabs belongs to the one you picked, grouped
+into labelled sections.
 
 ### Region
 
@@ -64,7 +64,7 @@ capture without turning the output — useful for lining a valley up with the
 page. Everything downstream works in an un-rotated "page frame" measured in
 ground metres, so a rotated capture is not a special case anywhere else.
 
-### Elevation
+### Elevation data
 
 **Source** is normally *Auto*, which takes the best data covering the area and
 fills any gaps from the next best — a capture crossing a border gets
@@ -81,15 +81,17 @@ Going finer than the source changes the drawing but adds no information — see
 for the measurements. **Clamp** restricts the output to an elevation band, and
 applies to both outputs.
 
-### Smoothing
+### Smoothing (in the SVG tab)
 
-Contour-line settings only; the mesh reads the elevation grid directly. **Terrain
+Contour-line settings only, which is why they live inside the SVG tab rather
+than above it; the mesh reads the elevation grid directly and has its own
+**Smooth** control. **Terrain
 blur** is the one that matters — it smooths the data before contouring, removing
 stair-stepping where the noise actually is. **Simplify** and **Curve** tidy the
 finished lines, and **Drop under** discards the confetti of tiny rings that
 noisy summits produce.
 
-### OSM data
+### Feature data
 
 Roads, paths, water, buildings and the rest come either from **Overpass**, the
 public OpenStreetMap query service, or from a **local extract** you download
@@ -117,12 +119,18 @@ to cross the frame.
 
 ### Trip selection
 
-Click or drag over paths in the preview to build a route. It lands in its own
-`trip` layer so you can plot it in a second colour over the map.
+Click or drag over paths in the SVG preview to build a route. The chips choose
+which layers respond. It lands in its own `trip` layer so you can plot it in a
+second colour over the map, and the same route can be **raised on the 3D model**
+as its own object (Features → trip), draped over the terrain like a road. Its
+width is given in millimetres of model rather than metres of ground, since a
+route is a drawn line rather than a real object.
 
 ## Output
 
 ### SVG for plotting
+
+Four sections: **Page setup**, **Contours**, **Smoothing** and **Water**.
 
 **Drawing size** is the finished size on the page, before the margin. It is
 independent of the 3D model size — the two outputs are sized separately, so
@@ -146,6 +154,10 @@ vpype read map.svg linemerge linesort write --page-size a3 plot.svg
 ```
 
 ### 3D mesh
+
+Four sections: **Model setup** (format, size, base, backplate), **Terrain**
+(smoothing, exaggeration, height, resolution), **Water**, and **Features**
+(nozzle size, buildings, roads, trip).
 
 **Model size** is the printed footprint of the terrain, not counting any
 backplate, and is independent of the SVG drawing size. **Backplate** adds an
@@ -184,6 +196,14 @@ slicers; **OBJ + MTL** is more universal; **STL** is one uncoloured solid.
 
 Everything is built to be watertight, and the Result panel reports open edges per
 object rather than claiming success.
+
+The preview shows the same geometry you will download, not an approximation of
+it. Drag to orbit, **shift-drag** (or right-drag) to pan, scroll to zoom towards
+the pointer, and **double-click any point to orbit around that** instead of the
+model's centre — which is what you want when you are looking at one corner of a
+map. The **iso / top / front / side** buttons reframe the whole model, and a
+fresh model refits itself if you resize the pane, until you move the view
+yourself.
 
 ## What it is not
 

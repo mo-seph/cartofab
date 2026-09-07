@@ -51,7 +51,7 @@
   </section>
 
   <section>
-    <h2>Elevation</h2>
+    <h2>Elevation data</h2>
     <div class="row"><label>Source<button type="button" class="help" data-title="Elevation source" data-help="Which terrain dataset to sample.||<b>Auto</b> uses the best available for the area and fills any gaps from the next best, so a capture crossing a border gets high-resolution data on both sides.||Listed sources are the ones that <i>can</i> cover this area. Some — Scottish LiDAR especially — were only flown over parts of their territory, so the Result panel is what tells you which source actually supplied the terrain, and how much of it. Pin a single source if you want uniform quality rather than the best available." aria-label="What does Elevation source do?">?</button></label>
       <select id="demSource">
         <option value="auto">Auto (best available)</option>
@@ -65,22 +65,9 @@
       <input id="levelMin" type="number" placeholder="min"><input id="levelMax" type="number" placeholder="max"></div>
   </section>
 
-  <section data-mode="svg">
-    <h2>Smoothing</h2>
-    <div class="row"><label>Terrain blur<button type="button" class="help" data-title="Terrain blur" data-help="Smooths the <b>elevation data</b> before contouring, in pixels.||<b>This is the smoothing setting that matters.</b> It removes stair-stepping at source, where the noise actually is, instead of averaging it out of the lines afterwards. Try 1–2 for fine data (IGN, LiDAR) and 2–4 for the global DEM. Too high and real ridges and gullies melt away." aria-label="What does Terrain blur do?">?</button></label>
-      <input id="blur" type="range" min="0" max="12" step="0.5" value="1.5"><output id="blurOut">1.5</output></div>
-    <div class="row"><label>Simplify<button type="button" class="help" data-title="Simplify" data-help="Douglas–Peucker tolerance in ground metres: drops points that sit within this distance of the line they are on. Cuts the point count hard with little visible change, which keeps files small and plotting quick. Around 1–5&nbsp;m is usually invisible; raise it for a deliberately angular look." aria-label="What does Simplify do?">?</button></label>
-      <input id="simplify" type="range" min="0" max="60" step="0.5" value="2"><output id="simplifyOut">2 m</output></div>
-    <div class="row"><label>Curve<button type="button" class="help" data-title="Curve" data-help="Chaikin corner-cutting passes over the finished lines. Each pass rounds off remaining corners, so this takes the last hard edges off after the terrain blur has done the real work. 1 is usually enough; 0 leaves the polylines exactly as the contouring produced them." aria-label="What does Curve do?">?</button></label>
-      <input id="smooth" type="range" min="0" max="4" step="1" value="1"><output id="smoothOut">1</output></div>
-    <div class="row"><label>Drop under<button type="button" class="help" data-title="Drop under" data-help="Discards any contour fragment shorter than this many ground metres. Removes the confetti of tiny closed rings that noisy summits and crags produce, which cost a lot of pen-up/pen-down moves for almost no drawing. Raise it if the plot looks speckled." aria-label="What does Drop under do?">?</button></label>
-      <input id="minLen" type="number" step="10" min="0" value="40"><span class="unit">m</span></div>
-    <div class="row check"><label><input id="seaFill" type="checkbox">
-      treat missing data as sea<button type="button" class="help" data-title="Treat missing data as sea" data-help="Fills areas with no elevation data with &minus;1&nbsp;m, so the 0&nbsp;m contour closes neatly around a coastline. Meant for IGN, whose grid simply stops at the shore. Leave off inland, and off for the global DEM, which has real bathymetry." aria-label="What does Treat missing data as sea do?">?</button></label></div>
-  </section>
 
   <section>
-    <h2>OSM data</h2>
+    <h2>Feature data</h2>
     <div class="row"><label>Source<button type="button" class="help" data-title="OSM data source" data-help="Where the road, path, water and building layers come from.||<b>Overpass</b> is the public OpenStreetMap query service — nothing to install, but the public instances are often busy, and a busy one is worst exactly when you are exploring somewhere new, because the cache cannot help there. Responses are cached per layer, so only the first look at an area is slow.||A <b>local extract</b> is a one-off download of a region from Geofabrik, imported to a small database and then queried instantly, forever, with the same tags and geometry Overpass would give you. The default uses an installed extract when one covers the area &mdash; it is complete and instant &mdash; and Overpass everywhere else. Choose <b>Overpass</b> explicitly if you want the live data because the area has changed since you downloaded it." aria-label="What does OSM data source do?">?</button></label>
       <select id="osmSource">
         <option value="auto">Local extract if installed, else Overpass</option>
@@ -119,7 +106,7 @@
       </select></div>
   </section>
 
-  <section data-mode="svg">
+  <section>
     <h2>Trip selection</h2>
     <div class="chips" id="selectable">
       <label><input type="checkbox" value="paths" checked> paths</label>
@@ -127,89 +114,131 @@
       <label><input type="checkbox" value="rivers"> rivers</label>
       <label><input type="checkbox" value="railways"> railways</label>
     </div>
-    <div class="note">which layers respond to clicking in the preview</div>
+    <div class="note">which layers respond to clicking in the SVG preview &mdash; the route carries over to the 3D model</div>
   </section>
 
   <!-- ------------------------------------------------ what to make, and go -->
-  <section class="actions">
-    <div class="modes" id="outputMode">
-      <label><input type="radio" name="omode" value="svg" checked> SVG for plotting</label>
-      <label><input type="radio" name="omode" value="mesh"> 3D mesh</label>
+  <!-- --------------------------------------------- pick an output, go -->
+  <section class="outputs">
+    <div class="modes tabs" id="outputMode">
+      <label><input type="radio" name="omode" value="svg" checked><span>SVG for plotting</span></label>
+      <label><input type="radio" name="omode" value="mesh"><span>3D mesh</span></label>
     </div>
+    <div class="tabbody">
+    <div class="actions">
     <button id="generate" class="wide primary">Generate</button>
     <button id="export" class="wide" disabled>Download SVG</button>
     <div id="status" class="status"></div>
-  </section>
-
-  <!-- ------------------------------------------------- output-specific -->
-  <section class="outgrp">
-    <h2>Output</h2>
-    <div data-mode="svg" class="row"><label>Drawing size<button type="button" class="help" data-title="Drawing size" data-help="The finished size of the drawing on the page, in millimetres, before the margin is added. Height follows the capture's aspect while the lock is closed.||Open the lock to set both independently, which stretches the drawing &mdash; occasionally what you want to fill a frame, but it does distort the ground.||This is separate from the 3D model size: the two outputs are sized independently." aria-label="What does Drawing size do?">?</button></label>
+    </div>
+    <div class="outgrp" data-mode="svg">
+      <section class="sub">
+        <h3>Page setup</h3>
+    <div class="row size"><label>Drawing size<button type="button" class="help" data-title="Drawing size" data-help="The finished size of the drawing on the page, in millimetres, before the margin is added. Height follows the capture's aspect while the lock is closed.||Open the lock to set both independently, which stretches the drawing &mdash; occasionally what you want to fill a frame, but it does distort the ground.||This is separate from the 3D model size: the two outputs are sized independently." aria-label="What does Drawing size do?">?</button></label>
       <input id="widthMm" type="number" step="1" min="10" value="200">
       <button type="button" id="sizeLock" class="lockbtn on" title="keep the capture aspect">&#128274;</button>
       <input id="heightMm" type="number" step="1" min="10" value="200"><span class="unit">mm</span></div>
-    <div data-mode="mesh" class="row"><label>Model size<button type="button" class="help" data-title="Model size" data-help="The finished size of the terrain itself, in millimetres &mdash; the printed footprint, not counting any backplate. Height follows the capture's aspect while the lock is closed.||Open the lock to set both independently, which stretches the model &mdash; occasionally what you want for a frame, but it does distort the ground.||This is separate from the SVG drawing size: the two outputs are sized independently." aria-label="What does Model size do?">?</button></label>
-      <input id="modelW" type="number" step="1" min="10" value="200">
-      <button type="button" id="modelLock" class="lockbtn on" title="keep the capture aspect">&#128274;</button>
-      <input id="modelH" type="number" step="1" min="10" value="200"><span class="unit">mm</span></div>
-    <div data-mode="svg" class="row"><label>Interval<button type="button" class="help" data-title="Contour interval" data-help="Vertical distance between contour lines, in metres.||<b>This is the main density control.</b> In steep mountains 50–100&nbsp;m keeps the drawing readable; on gentle ground or coastline try 5–25&nbsp;m. Watch the pen distance in the Result panel — halving the interval roughly doubles it." aria-label="What does Contour interval do?">?</button></label>
+    <div class="row"><label>Margin<button type="button" class="help" data-title="Margin" data-help="White space left inside the page edge, in millimetres. The frame, if drawn, sits on the margin." aria-label="What does Margin do?">?</button></label>
+      <input id="marginMm" type="number" step="1" min="0" value="0"><span class="unit">mm</span></div>
+    <div class="row check"><label><input id="frame" type="checkbox" checked> frame</label>
+      <label><input id="labelsOn" type="checkbox"> labels</label></div>
+      </section>
+      <section class="sub">
+        <h3>Contours</h3>
+    <div class="row"><label>Interval<button type="button" class="help" data-title="Contour interval" data-help="Vertical distance between contour lines, in metres.||<b>This is the main density control.</b> In steep mountains 50–100&nbsp;m keeps the drawing readable; on gentle ground or coastline try 5–25&nbsp;m. Watch the pen distance in the Result panel — halving the interval roughly doubles it." aria-label="What does Contour interval do?">?</button></label>
       <input id="interval" type="number" step="1" min="1" value="50"><span class="unit">m</span></div>
-    <div data-mode="svg" class="row"><label><input id="indexOn" type="checkbox" checked> Index every<button type="button" class="help" data-title="Index contours" data-help="Sends every Nth contour to its own <i>contours-index</i> layer, so you can plot it with a heavier pen — the usual way of making a contour map readable. With an interval of 50&nbsp;m and N&nbsp;=&nbsp;5 you get a heavy line every 250&nbsp;m. Untick for a single uniform contour layer." aria-label="What does Index contours do?">?</button></label>
+    <div class="row"><label><input id="indexOn" type="checkbox" checked> Index every<button type="button" class="help" data-title="Index contours" data-help="Sends every Nth contour to its own <i>contours-index</i> layer, so you can plot it with a heavier pen — the usual way of making a contour map readable. With an interval of 50&nbsp;m and N&nbsp;=&nbsp;5 you get a heavy line every 250&nbsp;m. Untick for a single uniform contour layer." aria-label="What does Index contours do?">?</button></label>
       <input id="indexEvery" type="number" step="1" min="2" max="50" value="5"><span class="unit">th</span></div>
-    <div data-mode="svg" class="row"><label>Fill<button type="button" class="help" data-title="Water fill" data-help="Fills lakes (and the sea, if included) with plotted lines instead of just outlining them.||<b>Hatch</b> draws one set of parallel lines, <b>cross-hatch</b> draws two at right angles for a darker tone. Watch the pen distance in the Result panel: filling a large loch adds a lot of drawing, and cross-hatch roughly doubles it." aria-label="What does Water fill do?">?</button></label>
+      </section>
+      <section class="sub">
+        <h3>Smoothing</h3>
+    <div class="row"><label>Terrain blur<button type="button" class="help" data-title="Terrain blur" data-help="Smooths the <b>elevation data</b> before contouring, in pixels.||<b>This is the smoothing setting that matters.</b> It removes stair-stepping at source, where the noise actually is, instead of averaging it out of the lines afterwards. Try 1–2 for fine data (IGN, LiDAR) and 2–4 for the global DEM. Too high and real ridges and gullies melt away." aria-label="What does Terrain blur do?">?</button></label>
+      <input id="blur" type="range" min="0" max="12" step="0.5" value="1.5"><output id="blurOut">1.5</output></div>
+    <div class="row"><label>Simplify<button type="button" class="help" data-title="Simplify" data-help="Douglas–Peucker tolerance in ground metres: drops points that sit within this distance of the line they are on. Cuts the point count hard with little visible change, which keeps files small and plotting quick. Around 1–5&nbsp;m is usually invisible; raise it for a deliberately angular look." aria-label="What does Simplify do?">?</button></label>
+      <input id="simplify" type="range" min="0" max="60" step="0.5" value="2"><output id="simplifyOut">2 m</output></div>
+    <div class="row"><label>Curve<button type="button" class="help" data-title="Curve" data-help="Chaikin corner-cutting passes over the finished lines. Each pass rounds off remaining corners, so this takes the last hard edges off after the terrain blur has done the real work. 1 is usually enough; 0 leaves the polylines exactly as the contouring produced them." aria-label="What does Curve do?">?</button></label>
+      <input id="smooth" type="range" min="0" max="4" step="1" value="1"><output id="smoothOut">1</output></div>
+    <div class="row"><label>Drop under<button type="button" class="help" data-title="Drop under" data-help="Discards any contour fragment shorter than this many ground metres. Removes the confetti of tiny closed rings that noisy summits and crags produce, which cost a lot of pen-up/pen-down moves for almost no drawing. Raise it if the plot looks speckled." aria-label="What does Drop under do?">?</button></label>
+      <input id="minLen" type="number" step="10" min="0" value="40"><span class="unit">m</span></div>
+    <div class="row check"><label><input id="seaFill" type="checkbox">
+      treat missing data as sea<button type="button" class="help" data-title="Treat missing data as sea" data-help="Fills areas with no elevation data with &minus;1&nbsp;m, so the 0&nbsp;m contour closes neatly around a coastline. Meant for IGN, whose grid simply stops at the shore. Leave off inland, and off for the global DEM, which has real bathymetry." aria-label="What does Treat missing data as sea do?">?</button></label></div>
+      </section>
+      <section class="sub">
+        <h3>Water</h3>
+    <div class="row"><label>Fill<button type="button" class="help" data-title="Water fill" data-help="Fills lakes (and the sea, if included) with plotted lines instead of just outlining them.||<b>Hatch</b> draws one set of parallel lines, <b>cross-hatch</b> draws two at right angles for a darker tone. Watch the pen distance in the Result panel: filling a large loch adds a lot of drawing, and cross-hatch roughly doubles it." aria-label="What does Water fill do?">?</button></label>
       <select id="waterHatch">
         <option value="none">outline only</option>
         <option value="hatch">hatch</option>
         <option value="cross">cross-hatch</option>
       </select></div>
-    <div data-mode="svg" class="row"><label>Spacing<button type="button" class="help" data-title="Hatch spacing" data-help="Gap between fill lines, measured <b>on the page in millimetres</b> rather than on the ground, so the texture looks the same whatever scale you capture at.||Around 1&ndash;2&nbsp;mm reads as water without flooding the plot. Below about 0.5&nbsp;mm most pens will bleed into solid tone." aria-label="What does Hatch spacing do?">?</button></label>
+    <div class="row"><label>Spacing<button type="button" class="help" data-title="Hatch spacing" data-help="Gap between fill lines, measured <b>on the page in millimetres</b> rather than on the ground, so the texture looks the same whatever scale you capture at.||Around 1&ndash;2&nbsp;mm reads as water without flooding the plot. Below about 0.5&nbsp;mm most pens will bleed into solid tone." aria-label="What does Hatch spacing do?">?</button></label>
       <input id="hatchSpacing" type="number" step="0.1" min="0.1" max="20" value="1.5"><span class="unit">mm</span></div>
-    <div data-mode="svg" class="row"><label>Angle<button type="button" class="help" data-title="Hatch angle" data-help="Direction of the fill lines, in degrees. 45&deg; is conventional for water and avoids clashing with the mostly-horizontal feel of contours. Cross-hatch adds a second set at 90&deg; to this." aria-label="What does Hatch angle do?">?</button></label>
+    <div class="row"><label>Angle<button type="button" class="help" data-title="Hatch angle" data-help="Direction of the fill lines, in degrees. 45&deg; is conventional for water and avoids clashing with the mostly-horizontal feel of contours. Cross-hatch adds a second set at 90&deg; to this." aria-label="What does Hatch angle do?">?</button></label>
       <input id="hatchAngle" type="range" min="0" max="180" step="5" value="45"><output id="hatchAngleOut">45&deg;</output></div>
-    <div data-mode="svg" class="row check"><label><input id="waterMask" type="checkbox"> mask beneath<button type="button" class="help" data-title="Mask beneath water" data-help="Removes contour and river lines that fall inside lakes and sea, rather than drawing them and covering them up.||Elevation models record a lake as a flat surface and rivers are mapped straight through them, so without this the pen draws lake-bed contours and runs rivers across open water. Roads and paths are left alone, since those are bridges and causeways." aria-label="What does Mask beneath water do?">?</button></label></div>
-    <div data-mode="svg" class="row"><label>Margin<button type="button" class="help" data-title="Margin" data-help="White space left inside the page edge, in millimetres. The frame, if drawn, sits on the margin." aria-label="What does Margin do?">?</button></label>
-      <input id="marginMm" type="number" step="1" min="0" value="0"><span class="unit">mm</span></div>
-    <div data-mode="svg" class="row check"><label><input id="frame" type="checkbox" checked> frame</label>
-      <label><input id="labelsOn" type="checkbox"> labels</label></div>
-    <div data-mode="mesh" class="row"><label>Resolution<button type="button" class="help" data-title="Mesh resolution" data-help="Grid points along the long edge of the model. Triangles come out at about <b>2 &times; (n&minus;1)&sup2;</b> for the surface, plus about 1% for the walls and base, and a binary STL is 50 bytes per triangle &mdash; the figure under the slider is the real prediction.||This is deliberately separate from elevation sampling: a 1600&times;1600 capture meshed at full detail is 5&nbsp;million triangles and a 256&nbsp;MB file. Sample the terrain as finely as you like and mesh it at something printable." aria-label="What does Mesh resolution do?">?</button></label>
-      <input id="meshN" type="range" min="64" max="1200" step="8" value="400">
-      <output id="meshNOut">400</output></div>
-    <div data-mode="mesh" class="note" id="meshEstimate"></div>
-    <div data-mode="mesh" class="row"><label>Smooth<button type="button" class="help" data-title="Mesh smoothing" data-help="Smooths the elevation before the surface is built, in <b>ground metres</b>.||Separate from the contour smoothing, which is measured in pixels and tuned for line work. This one exists because sampling a coarse source onto a finer mesh shows the source cells as flat facets &mdash; the pixellation you see when meshing 30&nbsp;m data at a metre or two.||Measured on 30&nbsp;m data meshed at 9&nbsp;m cells: 20&nbsp;m of smoothing halves the faceting and costs 1.5% of the relief; 40&nbsp;m takes it to a third for 2.6%. It cannot smooth below about one mesh cell, and says so rather than doing nothing quietly." aria-label="What does Mesh smoothing do?">?</button></label>
-      <input id="meshSmooth" type="number" step="5" min="0" max="500" value="0"><span class="unit">m</span></div>
-    <div data-mode="mesh" class="row"><label>Exaggeration<button type="button" class="help" data-title="Vertical exaggeration" data-help="Multiplies the height relative to the true scale. At 1&times; the model is geometrically honest and usually looks disappointingly flat, because real terrain is far wider than it is tall. 2&ndash;4&times; is the usual range." aria-label="What does Vertical exaggeration do?">?</button></label>
-      <input id="zExag" type="range" min="0.5" max="10" step="0.25" value="3">
-      <output id="zExagOut">3&times;</output></div>
-    <div data-mode="mesh" class="row"><label>Max height<button type="button" class="help" data-title="Max height" data-help="Ceiling for the finished model in millimetres, including the base and any backplate. Leave at 0 for no limit.||When the exaggeration you asked for would overshoot, it is reduced just enough to fit, and the Result panel shows what was actually used. Useful on high-relief ground: Mont Blanc over 8&nbsp;km at 3&times; is 223&nbsp;mm tall, which a 60&nbsp;mm ceiling quietly turns into 0.78&times;." aria-label="What does Max height do?">?</button></label>
-      <input id="maxHeight" type="number" step="5" min="0" max="500" value="0"><span class="unit">mm</span></div>
-    <div data-mode="mesh" class="row"><label>Base<button type="button" class="help" data-title="Base thickness" data-help="Solid slab below the lowest point of the terrain, in millimetres. Gives the model something to stand on and somewhere for the walls to close, which is what makes it watertight and printable." aria-label="What does Base thickness do?">?</button></label>
-      <input id="baseMm" type="number" step="0.5" min="0" max="50" value="3"><span class="unit">mm</span></div>
-    <div data-mode="mesh" class="row"><label>Min feature<button type="button" class="help" data-title="Minimum feature size" data-help="Your nozzle diameter. Buildings whose footprint is smaller than this cannot print, so they are left out and counted in the warnings; roads narrower than it are widened to it.||It also warns when the mesh grid is finer than the nozzle, which is detail you pay for in file size and can never see." aria-label="What does Minimum feature size do?">?</button></label>
-      <input id="nozzleMm" type="number" step="0.05" min="0.05" max="5" value="0.4"><span class="unit">mm</span></div>
-    <div data-mode="mesh" class="row check"><label><input id="meshWater" type="checkbox" checked> flat water<button type="button" class="help" data-title="Flat water" data-help="Sets every mesh vertex inside a lake, or below sea level, to one height so the surface is truly flat rather than following whatever the elevation model recorded there.||Each body gets its own level, taken from the median of the terrain underneath so it ignores the shoreline vertices that catch the bank.||The water is built on the mesh grid, which is what keeps it reliably watertight, so <b>the shoreline is only as crisp as the mesh resolution</b> and will look stepped if that is coarse. Raise the resolution if the coast matters." aria-label="What does Flat water do?">?</button></label>
-      <input id="waterMm" type="number" step="0.1" min="0.1" value="0.4"><span class="unit">mm</span><button type="button" class="help" data-title="Water thickness" data-help="Water is its own object so you can colour it separately, and this is how thick that slab is. Set it to a whole number of layers &mdash; 0.4&nbsp;mm is two layers at 0.2&nbsp;mm.||The terrain underneath is recessed by the same amount, so the water surface still sits at the true water level rather than proud of the land." aria-label="What does Water thickness do?">?</button></div>
-    <div data-mode="mesh" class="row"><label>Water shape<button type="button" class="help" data-title="Water shape" data-help="How the water slab is built.||<b>Smooth outline</b> follows the water's real polygon, so a shoreline is as crisp as the map data rather than as coarse as the mesh. This is the one to want.||<b>Mesh grid</b> rasterises the water onto the mesh instead, giving a stair-stepped shore. It is guaranteed watertight however tangled the outline is, and the app falls back to it on its own if the smooth version cannot be built cleanly &mdash; telling you when it does." aria-label="What does Water shape do?">?</button></label>
-      <select id="waterStyle">
-        <option value="polygon">smooth outline</option>
-        <option value="grid">mesh grid (stepped)</option>
-      </select></div>
-    <div data-mode="mesh" class="row"><label>Flat if slope &lt;<button type="button" class="help" data-title="Flat if slope below" data-help="Not everything tagged as water is a lake. A burn falling down a hillside spans a large height range, and levelling it to one height carves a hole at the top and leaves a ridge at the bottom &mdash; which is what this setting exists to avoid.||A body is treated as a lake when the terrain under it falls by less than this fraction of its own length; anything steeper keeps the shape of the ground and is draped like a road. Measured on real ground: Arthur\u0027s Seat lochs sit at 0.001&ndash;0.011, Loch Lomond at 0.001&ndash;0.031, Cuillin streams at 0.021&ndash;0.142. Raise it to force more things flat, lower it to keep more of them following the hill." aria-label="What does Flat if slope below do?">?</button></label>
-      <input id="flatTol" type="number" step="0.005" min="0" max="1" value="0.02"></div>
-    <div data-mode="mesh" class="row check"><label><input id="meshBuildings" type="checkbox"> buildings</label>
-      <input id="buildingsMm" type="number" step="0.25" min="0.1" value="2"><span class="unit">mm</span><button type="button" class="help" data-title="Building height" data-help="How far buildings stand above the ground, in millimetres of model. OSM rarely carries usable heights, so this is a single figure for all of them rather than anything per-building." aria-label="What does Building height do?">?</button></div>
-    <div data-mode="mesh" class="row check"><label><input id="meshRoads" type="checkbox"> roads</label>
-      <input id="roadsMm" type="number" step="0.1" min="0.1" value="0.6"><span class="unit">mm</span><button type="button" class="help" data-title="Road height" data-help="How far roads stand above the ground. Widths come from the highway class &mdash; motorway 14&nbsp;m down to footpath 1.5&nbsp;m &mdash; widened to the nozzle where that would be too thin to print." aria-label="What does Road height do?">?</button></div>
-    <div data-mode="mesh" class="row check"><label><input id="backplate" type="checkbox"> backplate<button type="button" class="help" data-title="Backplate" data-help="A thin plate under the whole model, larger than the terrain, so it can tuck under the border of a deep frame.||Give the size you want the plate to be and the model is centred on it. It is a separate object, so it can take its own colour, and the terrain sits exactly on top rather than sinking in." aria-label="What does Backplate do?">?</button></label>
-      <input id="backplateMm" type="number" step="0.1" min="0.1" value="0.5"><span class="unit">mm</span></div>
-    <div data-mode="mesh" class="row" id="plateSizeRow"><label>Plate size</label>
-      <input id="backplateW" type="number" step="5" min="10" value="240">
-      <input id="backplateH" type="number" step="5" min="10" value="240"><span class="unit">mm</span></div>
-    <div data-mode="mesh" class="row"><label>Format<button type="button" class="help" data-title="Mesh format" data-help="<b>3MF</b> keeps every part &mdash; terrain, water, buildings, roads, backplate &mdash; as a separate named object with its own colour, and is what slicers built around it (Bambu Studio especially) read most reliably. Try this first.||<b>OBJ + MTL</b> carries the same objects and colours and is more universal, but some slicers flatten it to one uncoloured body. Downloads as a zip because the material file travels alongside.||<b>STL</b> is one solid with no colour and no object names: universal, and fine if you only want the terrain." aria-label="What does Mesh format do?">?</button></label>
+    <div class="row check"><label><input id="waterMask" type="checkbox"> mask beneath<button type="button" class="help" data-title="Mask beneath water" data-help="Removes contour and river lines that fall inside lakes and sea, rather than drawing them and covering them up.||Elevation models record a lake as a flat surface and rivers are mapped straight through them, so without this the pen draws lake-bed contours and runs rivers across open water. Roads and paths are left alone, since those are bridges and causeways." aria-label="What does Mask beneath water do?">?</button></label></div>
+      </section>
+    </div>
+    <div class="outgrp" data-mode="mesh">
+      <section class="sub">
+        <h3>Model setup</h3>
+    <div class="row"><label>Format<button type="button" class="help" data-title="Mesh format" data-help="<b>3MF</b> keeps every part &mdash; terrain, water, buildings, roads, backplate &mdash; as a separate named object with its own colour, and is what slicers built around it (Bambu Studio especially) read most reliably. Try this first.||<b>OBJ + MTL</b> carries the same objects and colours and is more universal, but some slicers flatten it to one uncoloured body. Downloads as a zip because the material file travels alongside.||<b>STL</b> is one solid with no colour and no object names: universal, and fine if you only want the terrain." aria-label="What does Mesh format do?">?</button></label>
       <select id="meshFormat">
         <option value="3mf">3MF (coloured objects)</option>
         <option value="obj">OBJ + MTL (coloured objects)</option>
         <option value="stl">STL (single solid)</option>
       </select></div>
+    <div class="row size"><label>Model size<button type="button" class="help" data-title="Model size" data-help="The finished size of the terrain itself, in millimetres &mdash; the printed footprint, not counting any backplate. Height follows the capture's aspect while the lock is closed.||Open the lock to set both independently, which stretches the model &mdash; occasionally what you want for a frame, but it does distort the ground.||This is separate from the SVG drawing size: the two outputs are sized independently." aria-label="What does Model size do?">?</button></label>
+      <input id="modelW" type="number" step="1" min="10" value="200">
+      <button type="button" id="modelLock" class="lockbtn on" title="keep the capture aspect">&#128274;</button>
+      <input id="modelH" type="number" step="1" min="10" value="200"><span class="unit">mm</span></div>
+    <div class="row"><label>Base<button type="button" class="help" data-title="Base thickness" data-help="Solid slab below the lowest point of the terrain, in millimetres. Gives the model something to stand on and somewhere for the walls to close, which is what makes it watertight and printable." aria-label="What does Base thickness do?">?</button></label>
+      <input id="baseMm" type="number" step="0.5" min="0" max="50" value="3"><span class="unit">mm</span></div>
+    <div class="row check"><label><input id="backplate" type="checkbox"> backplate<button type="button" class="help" data-title="Backplate" data-help="A thin plate under the whole model, larger than the terrain, so it can tuck under the border of a deep frame.||Give the size you want the plate to be and the model is centred on it. It is a separate object, so it can take its own colour, and the terrain sits exactly on top rather than sinking in." aria-label="What does Backplate do?">?</button></label>
+      <input id="backplateMm" type="number" step="0.1" min="0.1" value="0.5"><span class="unit">mm</span></div>
+    <div class="row size" id="plateSizeRow"><label>Plate size</label>
+      <input id="backplateW" type="number" step="5" min="10" value="240">
+      <input id="backplateH" type="number" step="5" min="10" value="240"><span class="unit">mm</span></div>
+      </section>
+      <section class="sub">
+        <h3>Terrain</h3>
+    <div class="row"><label>Smooth<button type="button" class="help" data-title="Mesh smoothing" data-help="Smooths the elevation before the surface is built, in <b>ground metres</b>.||Separate from the contour smoothing, which is measured in pixels and tuned for line work. This one exists because sampling a coarse source onto a finer mesh shows the source cells as flat facets &mdash; the pixellation you see when meshing 30&nbsp;m data at a metre or two.||Measured on 30&nbsp;m data meshed at 9&nbsp;m cells: 20&nbsp;m of smoothing halves the faceting and costs 1.5% of the relief; 40&nbsp;m takes it to a third for 2.6%. It cannot smooth below about one mesh cell, and says so rather than doing nothing quietly." aria-label="What does Mesh smoothing do?">?</button></label>
+      <input id="meshSmooth" type="number" step="5" min="0" max="500" value="0"><span class="unit">m</span></div>
+    <div class="row"><label>Exaggeration<button type="button" class="help" data-title="Vertical exaggeration" data-help="Multiplies the height relative to the true scale. At 1&times; the model is geometrically honest and usually looks disappointingly flat, because real terrain is far wider than it is tall. 2&ndash;4&times; is the usual range." aria-label="What does Vertical exaggeration do?">?</button></label>
+      <input id="zExag" type="range" min="0.5" max="10" step="0.25" value="3">
+      <output id="zExagOut">3&times;</output></div>
+    <div class="row"><label>Max height<button type="button" class="help" data-title="Max height" data-help="Ceiling for the finished model in millimetres, including the base and any backplate. Leave at 0 for no limit.||When the exaggeration you asked for would overshoot, it is reduced just enough to fit, and the Result panel shows what was actually used. Useful on high-relief ground: Mont Blanc over 8&nbsp;km at 3&times; is 223&nbsp;mm tall, which a 60&nbsp;mm ceiling quietly turns into 0.78&times;." aria-label="What does Max height do?">?</button></label>
+      <input id="maxHeight" type="number" step="5" min="0" max="500" value="0"><span class="unit">mm</span></div>
+    <div class="row"><label>Resolution<button type="button" class="help" data-title="Mesh resolution" data-help="Grid points along the long edge of the model. Triangles come out at about <b>2 &times; (n&minus;1)&sup2;</b> for the surface, plus about 1% for the walls and base, and a binary STL is 50 bytes per triangle &mdash; the figure under the slider is the real prediction.||This is deliberately separate from elevation sampling: a 1600&times;1600 capture meshed at full detail is 5&nbsp;million triangles and a 256&nbsp;MB file. Sample the terrain as finely as you like and mesh it at something printable." aria-label="What does Mesh resolution do?">?</button></label>
+      <input id="meshN" type="range" min="64" max="1200" step="8" value="400">
+      <output id="meshNOut">400</output></div>
+    <div class="note" id="meshEstimate"></div>
+      </section>
+      <section class="sub">
+        <h3>Water</h3>
+    <div class="row check"><label><input id="meshWater" type="checkbox" checked> flat water<button type="button" class="help" data-title="Flat water" data-help="Sets every mesh vertex inside a lake, or below sea level, to one height so the surface is truly flat rather than following whatever the elevation model recorded there.||Each body gets its own level, taken from the median of the terrain underneath so it ignores the shoreline vertices that catch the bank.||The water is built on the mesh grid, which is what keeps it reliably watertight, so <b>the shoreline is only as crisp as the mesh resolution</b> and will look stepped if that is coarse. Raise the resolution if the coast matters." aria-label="What does Flat water do?">?</button></label>
+      <input id="waterMm" type="number" step="0.1" min="0.1" value="0.4"><span class="unit">mm</span><button type="button" class="help" data-title="Water thickness" data-help="Water is its own object so you can colour it separately, and this is how thick that slab is. Set it to a whole number of layers &mdash; 0.4&nbsp;mm is two layers at 0.2&nbsp;mm.||The terrain underneath is recessed by the same amount, so the water surface still sits at the true water level rather than proud of the land." aria-label="What does Water thickness do?">?</button></div>
+    <div class="row"><label>Water shape<button type="button" class="help" data-title="Water shape" data-help="How the water slab is built.||<b>Smooth outline</b> follows the water's real polygon, so a shoreline is as crisp as the map data rather than as coarse as the mesh. This is the one to want.||<b>Mesh grid</b> rasterises the water onto the mesh instead, giving a stair-stepped shore. It is guaranteed watertight however tangled the outline is, and the app falls back to it on its own if the smooth version cannot be built cleanly &mdash; telling you when it does." aria-label="What does Water shape do?">?</button></label>
+      <select id="waterStyle">
+        <option value="polygon">smooth outline</option>
+        <option value="grid">mesh grid (stepped)</option>
+      </select></div>
+    <div class="row"><label>Flat if slope &lt;<button type="button" class="help" data-title="Flat if slope below" data-help="Not everything tagged as water is a lake. A burn falling down a hillside spans a large height range, and levelling it to one height carves a hole at the top and leaves a ridge at the bottom &mdash; which is what this setting exists to avoid.||A body is treated as a lake when the terrain under it falls by less than this fraction of its own length; anything steeper keeps the shape of the ground and is draped like a road. Measured on real ground: Arthur\u0027s Seat lochs sit at 0.001&ndash;0.011, Loch Lomond at 0.001&ndash;0.031, Cuillin streams at 0.021&ndash;0.142. Raise it to force more things flat, lower it to keep more of them following the hill." aria-label="What does Flat if slope below do?">?</button></label>
+      <input id="flatTol" type="number" step="0.005" min="0" max="1" value="0.02"></div>
+      </section>
+      <section class="sub">
+        <h3>Features</h3>
+    <div class="row"><label>Min feature<button type="button" class="help" data-title="Minimum feature size" data-help="Your nozzle diameter. Buildings whose footprint is smaller than this cannot print, so they are left out and counted in the warnings; roads narrower than it are widened to it.||It also warns when the mesh grid is finer than the nozzle, which is detail you pay for in file size and can never see." aria-label="What does Minimum feature size do?">?</button></label>
+      <input id="nozzleMm" type="number" step="0.05" min="0.05" max="5" value="0.4"><span class="unit">mm</span></div>
+    <div class="row check"><label><input id="meshBuildings" type="checkbox"> buildings</label>
+      <input id="buildingsMm" type="number" step="0.25" min="0.1" value="2"><span class="unit">mm</span><button type="button" class="help" data-title="Building height" data-help="How far buildings stand above the ground, in millimetres of model. OSM rarely carries usable heights, so this is a single figure for all of them rather than anything per-building." aria-label="What does Building height do?">?</button></div>
+    <div class="row check"><label><input id="meshRoads" type="checkbox"> roads</label>
+      <input id="roadsMm" type="number" step="0.1" min="0.1" value="0.6"><span class="unit">mm</span><button type="button" class="help" data-title="Road height" data-help="How far roads stand above the ground. Widths come from the highway class &mdash; motorway 14&nbsp;m down to footpath 1.5&nbsp;m &mdash; widened to the nozzle where that would be too thin to print." aria-label="What does Road height do?">?</button></div>
+      </section>
+    <div class="row check"><label><input id="meshTrip" type="checkbox"> trip<button type="button" class="help" data-title="Raised trip" data-help="Raises the route you picked in the SVG preview as its own object, so it can be printed in another colour.||Like roads it is draped over the terrain rather than flattened, so it follows the hill.||Pick the route by clicking or dragging over paths in the SVG preview; the <b>Trip selection</b> chips choose which layers respond to that." aria-label="What does Raised trip do?">?</button></label>
+      <input id="tripMm" type="number" step="0.1" min="0.1" value="1"><span class="unit">mm</span></div>
+    <div class="row"><label>Trip width<button type="button" class="help" data-title="Trip width" data-help="How wide the raised route is, in millimetres <b>of the model</b> rather than metres on the ground &mdash; a route is a drawn line, so it should look the same whatever scale you capture at. Widened to the nozzle if you set it finer than that." aria-label="What does Trip width do?">?</button></label>
+      <input id="tripWmm" type="number" step="0.1" min="0.1" value="1.5"><span class="unit">mm</span></div>
+    </div>
+    </div>
   </section>
 
   <section>
@@ -236,8 +265,14 @@
     <div class="ptools">
       <span class="ptitle">Preview</span>
       <span class="hint" id="tripHint">click or drag over paths to build a trip</span>
-      <button id="clearTrip" class="mini">clear trip</button>
-      <button id="zoomFit" class="mini">fit</button>
+      <button id="clearTrip" class="mini" data-mode="svg">clear trip</button>
+      <button id="zoomFit" class="mini" data-mode="svg">fit</button>
+      <span class="viewbtns" data-mode="mesh">
+        <button class="mini" data-view="iso" title="three-quarter view">iso</button>
+        <button class="mini" data-view="top" title="straight down">top</button>
+        <button class="mini" data-view="front" title="from the south">front</button>
+        <button class="mini" data-view="side" title="from the west">side</button>
+      </span>
     </div>
     <div id="preview"><p class="placeholder">Choose an area and press <b>Generate</b>.</p></div>
     <div id="mesh3d" class="hidden"></div>

@@ -8,6 +8,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 const host = document.getElementById('mesh3d');
 let renderer, scene, camera, controls, root, raf;
+let bounds = null;                       // model box, for the view presets
+let framedView = 'iso';                  // the preset the framing came from
+let userMoved = false;                   // ...unless the view has been touched
 
 function init() {
   if (renderer) return;
@@ -21,6 +24,41 @@ function init() {
   camera = new THREE.PerspectiveCamera(38, 1, 0.5, 20000);
   controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
+  // Orbiting a fixed centre is the default and it is the wrong default here:
+  // you usually want to look at a corner of the map, not its middle.
+  controls.zoomToCursor = true;          // scroll goes where you point
+  controls.screenSpacePanning = true;    // pan follows the cursor, not the ground
+  controls.panSpeed = 0.9;
+
+  // Shift held = drag to pan. OrbitControls has no shift binding of its own,
+  // and right-drag (which it does have) is both undiscoverable and awkward on
+  // a trackpad, so swap the left button over while shift is down.
+  const ROTATE = THREE.MOUSE.ROTATE, PAN = THREE.MOUSE.PAN;
+  const setLeft = (b) => { controls.mouseButtons = {
+    LEFT: b, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: PAN }; };
+  setLeft(ROTATE);
+  addEventListener('keydown', (e) => { if (e.key === 'Shift') setLeft(PAN); });
+  addEventListener('keyup', (e) => { if (e.key === 'Shift') setLeft(ROTATE); });
+  addEventListener('blur', () => setLeft(ROTATE));
+
+  // Double-click re-centres the orbit on whatever is under the pointer, which
+  // is the direct answer to "I can only spin around the middle".
+  const ray = new THREE.Raycaster();
+  renderer.domElement.addEventListener('dblclick', (e) => {
+    if (!root) return;
+    const r = renderer.domElement.getBoundingClientRect();
+    ray.setFromCamera(new THREE.Vector2(
+      ((e.clientX - r.left) / r.width) * 2 - 1,
+      -((e.clientY - r.top) / r.height) * 2 + 1), camera);
+    const hit = ray.intersectObject(root, true)[0];
+    if (!hit) return;
+    // keep the camera where it is and move only what it looks at, so the view
+    // does not jump — the pivot slides under the model
+    const shift = hit.point.clone().sub(controls.target);
+    controls.target.add(shift);
+    camera.position.add(shift);
+    controls.update();
+  });
 
   scene.add(new THREE.HemisphereLight(0xdfe7f5, 0x2a2620, 1.5));
   const key = new THREE.DirectionalLight(0xffffff, 2.2);
@@ -29,6 +67,11 @@ function init() {
   const fill = new THREE.DirectionalLight(0xffffff, 0.6);
   fill.position.set(2, 1, 1);
   scene.add(fill);
+
+  // Reframing on every resize would fight you mid-drag, but leaving a freshly
+  // loaded model cropped because the pane was a different shape when it landed
+  // is worse. So: refit on resize only until the view is first touched.
+  controls.addEventListener('start', () => { userMoved = true; });
 
   const loop = () => { raf = requestAnimationFrame(loop); controls.update();
                        renderer.render(scene, camera); };
@@ -43,6 +86,7 @@ function resize() {
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
+  if (root && !userMoved) setView(framedView);
 }
 
 function clear() {
@@ -83,18 +127,42 @@ export function show(buffer) {
   root.rotation.x = -Math.PI / 2;
   scene.add(root);
 
-  const box = new THREE.Box3().setFromObject(root);
-  const size = box.getSize(new THREE.Vector3());
-  const mid = box.getCenter(new THREE.Vector3());
-  controls.target.copy(mid);
-  const span = Math.max(size.x, size.y, size.z);
-  camera.position.set(mid.x + span * 0.9, mid.y + span * 0.8, mid.z + span * 1.1);
+  bounds = new THREE.Box3().setFromObject(root);
+  const span = Math.max(...bounds.getSize(new THREE.Vector3()).toArray());
   camera.near = span / 500;
   camera.far = span * 60;
-  camera.updateProjectionMatrix();
-  controls.update();
+  userMoved = false;
+  setView('iso');
   resize();
   return header.stats;
+}
+
+/* Named viewpoints, all framed on the model. Directions are in the tipped
+   frame the model is displayed in (Z up becomes Y up). */
+const DIRS = {
+  iso: [0.9, 0.8, 1.1],
+  top: [0, 1, 0.0001],       // not exactly straight down: a pure Y axis has no
+  front: [0, 0.15, 1],       // stable "up" and the camera rolls unpredictably
+  side: [1, 0.15, 0],
+};
+
+export function setView(name = 'iso') {
+  if (!root || !bounds) return;
+  framedView = DIRS[name] ? name : 'iso';
+  userMoved = false;
+  const d = DIRS[framedView];
+  const size = bounds.getSize(new THREE.Vector3());
+  const mid = bounds.getCenter(new THREE.Vector3());
+  const span = Math.max(size.x, size.y, size.z);
+  // pull back far enough that the whole model fits the narrower field of view
+  const fov = THREE.MathUtils.degToRad(camera.fov);
+  const dist = (span / 2) / Math.tan(fov / 2)
+               * (camera.aspect < 1 ? 1 / Math.max(camera.aspect, 0.2) : 1) * 1.25;
+  const v = new THREE.Vector3(...d).normalize().multiplyScalar(dist);
+  controls.target.copy(mid);
+  camera.position.copy(mid).add(v);
+  camera.updateProjectionMatrix();
+  controls.update();
 }
 
 export function dispose() {
@@ -102,4 +170,4 @@ export function dispose() {
   clear();
 }
 
-window.MeshViewer = { show, dispose, resize };
+window.MeshViewer = { show, dispose, resize, setView };
