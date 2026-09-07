@@ -1,0 +1,185 @@
+:root{
+  --bg:#14161a; --panel:#1c1f25; --line:#2c313a; --text:#dfe3ea;
+  --muted:#8b93a1; --accent:#6fb3e0; --accent2:#d8894a;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{display:flex;font:13px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  background:var(--bg);color:var(--text);overflow:hidden}
+
+#rail{flex:0 0 26px;background:#12141a;border-right:1px solid var(--line);
+  display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0}
+.railbtn{width:20px;height:20px;padding:0;font-size:10px;line-height:1;
+  border-radius:4px;background:#232830;color:var(--muted);border:1px solid var(--line)}
+.railbtn.on{background:var(--accent);border-color:var(--accent);color:#0d1116;font-weight:700}
+.railbtn:hover{color:var(--text)}
+
+.splitter{flex:0 0 5px;cursor:col-resize;background:var(--line);position:relative}
+.splitter:hover,.splitter.dragging{background:var(--accent)}
+.splitter::after{content:"";position:absolute;inset:0 -3px}
+body.resizing{cursor:col-resize;user-select:none}
+body.resizing iframe,body.resizing #preview{pointer-events:none}
+
+#panel{width:330px;flex:0 0 330px;background:var(--panel);border-right:1px solid var(--line);
+  overflow-y:auto;padding:14px 14px 40px}
+#panel h1{font-size:16px;margin:0 0 14px;letter-spacing:.3px}
+#panel h1 small{color:var(--muted);font-weight:400;font-size:11px}
+#panel h2{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);
+  margin:0 0 8px;font-weight:600}
+section{border-top:1px solid var(--line);padding:12px 0}
+section:first-of-type{border-top:0;padding-top:0}
+
+.row{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.row label{flex:0 0 88px;color:var(--muted);font-size:12px}
+.row.check{gap:14px}
+.row.check label{flex:none;color:var(--text)}
+input,select,button{font:inherit;color:var(--text);background:#232830;border:1px solid var(--line);
+  border-radius:5px;padding:4px 6px;min-width:0}
+input[type=number],input[type=search]{flex:1;width:100%}
+input[type=range]{flex:1;padding:0;background:none;border:0;accent-color:var(--accent)}
+input[type=checkbox]{accent-color:var(--accent);min-width:auto;flex:none}
+select{flex:1}
+output,.unit{color:var(--muted);font-size:11px;flex:0 0 42px;text-align:right}
+button{cursor:pointer;background:#2a303a}
+button:hover{background:#333b47}
+button:disabled{opacity:.45;cursor:default}
+.wide{width:100%;padding:7px;margin-top:6px}
+.primary{background:var(--accent);color:#0d1116;border-color:var(--accent);font-weight:600}
+.primary:hover{background:#8ac4ea}
+.ghost{background:transparent}
+.mini{padding:2px 7px;font-size:11px}
+
+.search{display:flex;gap:6px}
+.results{list-style:none;margin:6px 0 0;padding:0;max-height:190px;overflow:auto;
+  border:1px solid var(--line);border-radius:5px}
+.results li{padding:6px 8px;cursor:pointer;border-bottom:1px solid var(--line);font-size:12px}
+.results li:hover{background:#262c35}
+.results li:last-child{border-bottom:0}
+
+.lockbtn{flex:0 0 24px;padding:2px 0;font-size:11px;line-height:1;
+  background:#232830;border:1px solid var(--line);border-radius:5px;cursor:pointer}
+.lockbtn.on{background:#2f4456;border-color:var(--accent)}
+.modes{display:flex;gap:6px;margin-bottom:10px}
+.modes label{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;
+  background:#232830;border:1px solid var(--line);border-radius:6px;
+  padding:6px 4px;font-size:11.5px;cursor:pointer;user-select:none}
+.modes label:has(:checked){background:#2f4456;border-color:var(--accent);color:#fff}
+.modes input{margin:0}
+section[data-mode].hidden{display:none}
+
+/* Output-specific controls read as a group: everything above them describes
+   the capture and applies to both outputs, everything inside depends on which
+   one you picked. */
+section.outgrp{background:var(--outbg,rgba(120,150,190,.06));
+  border-left:2px solid var(--outaccent,#6fb3e0);
+  padding-left:10px;margin-left:-2px}
+#panel section.outgrp h2{color:var(--outaccent,#6fb3e0)}
+section.actions{background:rgba(120,150,190,.03)}
+
+/* The installed extracts and the download offer are reference material, not
+   something you set on every render. */
+#osmMore{margin-top:6px}
+#osmMore>summary{cursor:pointer;font-size:11.5px;color:var(--muted);
+  list-style:none;padding:2px 0;user-select:none}
+#osmMore>summary::-webkit-details-marker{display:none}
+#osmMore>summary::before{content:"\25B8 ";display:inline-block;
+  transition:transform .12s ease}
+#osmMore[open]>summary::before{content:"\25BE "}
+#osmMore>summary:hover{color:var(--text)}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chips label{display:flex;align-items:center;gap:4px;background:#232830;border:1px solid var(--line);
+  border-radius:20px;padding:3px 9px 3px 7px;font-size:11.5px;cursor:pointer;user-select:none}
+.chips label:has(:checked){background:#2f4456;border-color:var(--accent)}
+
+button.help{
+  flex:none;width:15px;height:15px;padding:0;margin-left:5px;border-radius:50%;
+  background:transparent;border:1px solid var(--line);color:var(--muted);
+  font-size:10px;line-height:1;cursor:help;display:inline-flex;
+  align-items:center;justify-content:center;vertical-align:1px}
+button.help:hover,button.help.on{background:var(--accent);border-color:var(--accent);color:#0d1116}
+.row label{display:flex;align-items:center}
+
+.helpbox{position:fixed;z-index:1200;width:300px;max-width:calc(100vw - 24px);
+  background:#20252d;border:1px solid #3a424e;border-radius:8px;padding:12px 14px;
+  box-shadow:0 12px 34px rgba(0,0,0,.6);font-size:12px;line-height:1.5}
+.helpbox h3{margin:0 0 6px;font-size:12.5px;color:var(--accent);
+  padding-right:16px;letter-spacing:.2px}
+.helpbox div{color:#c3cad6}
+.helpbox b{color:var(--text);font-weight:600}
+.helpbox p{margin:7px 0 0}
+.helpclose{position:absolute;top:5px;right:6px;background:none;border:0;
+  color:var(--muted);font-size:16px;line-height:1;padding:2px 5px;cursor:pointer}
+.helpclose:hover{color:var(--text);background:none}
+
+.offer{border:1px solid #6a5a2a;background:#2a2618;border-radius:6px;
+  padding:9px 10px;margin:6px 0;font-size:11.5px;color:#e2d7b4}
+.offer b{color:#fff2cf}
+.offer .opts{margin-top:8px;display:flex;flex-direction:column;gap:4px}
+.offer .opts label{display:flex;align-items:center;gap:5px}
+.offer .opts input[type=number]{width:52px;padding:1px 4px;font-size:11px}
+.offer .hintline{color:#b9ab86;font-size:10.5px;line-height:1.4;margin-top:2px}
+.offer .cands{margin-top:7px;display:flex;flex-direction:column;gap:4px}
+.offer .cand{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.offer .cand span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.offer .cand em{color:var(--muted);font-style:normal;font-variant-numeric:tabular-nums}
+.bar{height:5px;background:#1d222a;border-radius:3px;overflow:hidden;margin-top:7px}
+.bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .25s}
+.store{display:flex;align-items:center;gap:8px;justify-content:space-between;
+  flex-wrap:wrap;font-size:11.5px;padding:4px 0;border-top:1px solid var(--line)}
+/* a store with a kept source carries two buttons and will not fit on one
+   line in a narrow panel — let it wrap rather than crushing the name away */
+.store span{flex:1 1 8em;min-width:8em;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.store button{flex:0 0 auto}
+.store em{color:var(--muted);font-style:normal;font-variant-numeric:tabular-nums}
+.store b.tag{font-weight:600;font-size:9.5px;text-transform:uppercase;
+  letter-spacing:.04em;color:var(--muted);border:1px solid var(--line);
+  border-radius:3px;padding:0 3px;margin-left:4px}
+.cacherow{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.cacherow span{color:var(--text);font-variant-numeric:tabular-nums;font-size:12px}
+
+.rhandle{background:#6fb3e0;border:1.5px solid #0d1116;border-radius:2px;
+  width:11px;height:11px;box-sizing:border-box;cursor:grab}
+.rhandle:active{cursor:grabbing}
+.rhandle.corner{border-radius:2px}
+.rhandle.edge{border-radius:50%;opacity:.85}
+.row label input[type=checkbox]{margin-right:5px;vertical-align:-1px}
+.note{font-size:11px;color:var(--muted);margin:-2px 0 6px 94px}
+.note:first-child{margin-left:0}
+/* .hidden is a class selector, so it loses to an id selector; the panes
+   that set display by id need their own hidden rule */
+#preview.hidden{display:none}
+#mesh3d{flex:1;min-height:0;position:relative;background:#14161a}
+#mesh3d canvas{display:block;width:100%;height:100%}
+#mesh3d.hidden{display:none}
+#preview.actual{align-items:flex-start;justify-content:flex-start}
+#preview.actual svg{max-width:none;max-height:none}
+.status{margin-top:8px;font-size:11.5px;color:var(--muted);min-height:16px}
+.status.err{color:#e07a7a}
+.status.warn{color:#ddb257}
+.stats{font-size:11.5px;color:var(--muted)}
+.stats table{width:100%;border-collapse:collapse}
+.stats td{padding:1px 0}
+.stats td:last-child{text-align:right;color:var(--text);font-variant-numeric:tabular-nums}
+.stats .hd{color:var(--text);padding-top:6px;font-weight:600}
+
+main{flex:1;display:flex;min-width:0}
+#map{flex:1;min-width:0;background:#0e1013}
+#previewPane{flex:1;min-width:0;display:flex;flex-direction:column;
+  background:#0e1013}
+#map.hidden,#previewPane.hidden,#panel.hidden{display:none}
+.ptools{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--line)}
+.ptitle{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+.hint{font-size:11px;color:var(--muted);flex:1}
+#preview{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;padding:16px}
+#preview svg{background:#fff;box-shadow:0 4px 24px rgba(0,0,0,.5);max-width:100%;max-height:100%;
+  width:auto;height:auto}
+#preview .placeholder{color:var(--muted);font-size:12.5px}
+#preview path.sel{cursor:pointer}
+#preview path.sel:hover{stroke:#e0a020;stroke-width:1.2}
+#preview path.trip{stroke:#d02020;stroke-width:.8}
+.hidden{display:none}
+
+.leaflet-container{background:#0e1013}
+.leaflet-bar a,.leaflet-control-attribution{background:#1c1f25;color:var(--muted)}
+.leaflet-control-attribution a{color:var(--accent)}

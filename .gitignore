@@ -1,0 +1,9 @@
+*.pyc
+.venv/
+__pycache__/
+cache/
+exports/
+osmdata/
+.DS_Store
+*.bak
+.claude/
