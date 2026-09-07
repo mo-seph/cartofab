@@ -18,9 +18,7 @@ selected and cached on disk, a few MB per map.
 
 > [!WARNING]
 > **This is AI-generated code and it has not been reviewed by a human.** It was
-> written by Claude, working from a running conversation, and while a lot of it
-> is backed by measurements recorded in [docs/how-it-works.md](docs/how-it-works.md),
-> nobody has audited it line by line. Read it before you trust it, and treat
+> written by Claude, working from a running conversation; treat
 > anything it tells you about terrain as unverified. It fetches from public
 > endpoints and writes files under its own directory; it has no authentication
 > and is meant to be run locally, on `127.0.0.1`, by one person.
