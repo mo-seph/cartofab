@@ -30,15 +30,21 @@ function init() {
   controls.screenSpacePanning = true;    // pan follows the cursor, not the ground
   controls.panSpeed = 0.9;
 
-  // Shift held = drag to pan. OrbitControls has no shift binding of its own,
-  // and right-drag (which it does have) is both undiscoverable and awkward on
-  // a trackpad, so swap the left button over while shift is down.
+  // Drag with shift or cmd/ctrl held = pan. OrbitControls binds neither of its
+  // own accord, and right-drag (which it does bind) is undiscoverable and
+  // awkward on a trackpad, so swap the left button over while a modifier is
+  // down. Cmd is included because that is what reaches us on a Mac trackpad.
   const ROTATE = THREE.MOUSE.ROTATE, PAN = THREE.MOUSE.PAN;
   const setLeft = (b) => { controls.mouseButtons = {
     LEFT: b, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: PAN }; };
+  const panning = (e) => e.shiftKey || e.metaKey || e.ctrlKey;
   setLeft(ROTATE);
-  addEventListener('keydown', (e) => { if (e.key === 'Shift') setLeft(PAN); });
-  addEventListener('keyup', (e) => { if (e.key === 'Shift') setLeft(ROTATE); });
+  const sync = (e) => setLeft(panning(e) ? PAN : ROTATE);
+  addEventListener('keydown', sync);
+  addEventListener('keyup', sync);
+  // a modifier held down when the pointer arrives must count too, since the
+  // keydown may have happened while another element had focus
+  renderer.domElement.addEventListener('pointerdown', sync, true);
   addEventListener('blur', () => setLeft(ROTATE));
 
   // Double-click re-centres the orbit on whatever is under the pointer, which

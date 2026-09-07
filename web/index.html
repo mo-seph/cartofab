@@ -8,12 +8,17 @@
 <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-<div id="rail" title="show or hide panes">
-  <button class="railbtn" data-pane="panel" title="Controls (⌥1)">C</button>
-  <button class="railbtn" data-pane="map" title="Map (⌥2)">M</button>
-  <button class="railbtn" data-pane="preview" title="Preview (⌥3)">P</button>
+<!-- The rail toggles the panel, so it must live outside it: inside, hiding the
+     panel would take the way back with it. -->
+<div id="topbar">
+  <div id="rail" title="show or hide panes">
+    <button class="railbtn" data-pane="panel" title="Controls (⌥1)">C</button>
+    <button class="railbtn" data-pane="map" title="Map (⌥2)">M</button>
+    <button class="railbtn" data-pane="preview" title="Preview (⌥3)">P</button>
+  </div>
 </div>
 
+<div id="shell">
 <aside id="panel">
   <h1>cartofab <small>contour maps &amp; terrain models</small></h1>
 
@@ -46,8 +51,9 @@
     <div class="row"><label>Rotation</label>
       <input id="rot" type="range" min="-180" max="180" step="1" value="0">
       <output id="rotOut">0°</output></div>
-    <button id="fit" class="wide ghost">Fit region to map view</button>
-    <div class="note">drag the square's handles to resize from the opposite corner &mdash; hold <b>&#8997; Option</b> to resize about the centre</div>
+    <div class="row check"><label><input id="followView" type="checkbox">
+      follow map view<button type="button" class="help info" data-title="Follow map view" data-help="Keeps the capture inside whatever the map is showing: pan or zoom and the region follows along, staying centred on the view.||Turn it off to pin the region and move the map around it. Dragging the square's own handles always pins it, since that is a deliberate edit." aria-label="What does Follow map view do?">i</button></label>
+      <button type="button" id="fit" class="btn">Fit</button></div>
   </section>
 
   <section>
@@ -59,7 +65,8 @@
         <option value="terrarium">Global (~30 m)</option>
       </select></div>
     <div class="row"><label>Sampling<button type="button" class="help" data-title="Sampling" data-help="Distance on the ground between elevation samples, in metres. This sets how much terrain detail reaches the contours.||<b>Smaller = more detail and more wiggle</b>, but slower and a bigger file. The box below measures what is actually available here and offers it as a button &mdash; it checks the real tile listings, so it will not promise you LiDAR that was never flown.||<b>Going finer than the source does change the drawing, but adds no information.</b> Sampling a 30&nbsp;m dataset at 5&nbsp;m gave 39% more lines and 30% more total length &mdash; and most of that is the terrain blur, which is set in <i>pixels</i>, so finer sampling quietly means less smoothing on the ground. Holding the blur constant, the extra was 11% more length and a median shift of 9&nbsp;m, well inside one source cell: the finer grid traces the curve of the interpolated surface where the coarse one cuts a chord across it. Smoother lines of the same terrain, at 143&times; the samples." aria-label="What does Sampling do?">?</button></label>
-      <input id="res" type="number" step="any" min="0.25" max="500" value="10"><span class="unit">m</span></div>
+      <input id="res" type="number" step="any" min="0.25" max="500" value="10"><span class="unit">m</span>
+      <button type="button" class="help info" id="resInfo" data-title="What covers this area" data-help="Checking…" aria-label="Which elevation sources cover this area?">i</button></div>
     <div class="note" id="demNote"></div>
     <div class="row"><label>Clamp<button type="button" class="help" data-title="Clamp" data-help="Only draw contours between these two elevations, in metres. Useful for isolating a summit, or for dropping everything below the shoreline. Leave empty to cover the full range of the terrain." aria-label="What does Clamp do?">?</button></label>
       <input id="levelMin" type="number" placeholder="min"><input id="levelMax" type="number" placeholder="max"></div>
@@ -259,7 +266,7 @@
 <div class="splitter" id="splitA" title="drag to resize · double-click to collapse"></div>
 
 <main>
-  <div id="map"></div>
+  <div id="map"><div id="mapnote">drag handles to resize &middot; <b>&#8997;</b> from the centre</div></div>
   <div class="splitter" id="splitB" title="drag to resize · double-click to collapse"></div>
   <div id="previewPane">
     <div class="ptools">
@@ -278,6 +285,7 @@
     <div id="mesh3d" class="hidden"></div>
   </div>
 </main>
+</div>
 
 <div id="helpBox" class="helpbox hidden" role="dialog" aria-live="polite">
   <button id="helpClose" class="helpclose" aria-label="Close">&times;</button>

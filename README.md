@@ -43,7 +43,7 @@ and open <http://127.0.0.1:8724>. `PORT=9000 ./run.sh` to move it.
 ## Using it
 
 Three panes: **controls**, **map**, **preview**. The **C / M / P** buttons in the
-left rail show and hide each (or ⌥1 / ⌥2 / ⌥3), and the dividers drag to resize —
+top bar show and hide each (or ⌥1 / ⌥2 / ⌥3), and the dividers drag to resize —
 double-click one to collapse the pane beside it. Sizes and visibility persist,
 which matters when the browser is already giving up horizontal space to a
 sidebar.
@@ -56,8 +56,9 @@ into labelled sections.
 ### Region
 
 Search for a place, or drag the square on the map. Its handles resize from the
-opposite corner; hold **⌥ Option** to resize about the centre. **Fit region to
-map view** snaps it to what you are looking at.
+opposite corner; hold **⌥ Option** to resize about the centre. **Fit** snaps the
+region to what you are looking at, and **follow map view** keeps doing that as
+you pan and zoom — until you drag the square yourself, which pins it again.
 
 **Aspect** locks the shape to a paper or frame ratio, and **Rotation** turns the
 capture without turning the output — useful for lining a valley up with the
@@ -198,7 +199,7 @@ Everything is built to be watertight, and the Result panel reports open edges pe
 object rather than claiming success.
 
 The preview shows the same geometry you will download, not an approximation of
-it. Drag to orbit, **shift-drag** (or right-drag) to pan, scroll to zoom towards
+it. Drag to orbit, **⇧ or ⌘ drag** (or right-drag) to pan, scroll to zoom towards
 the pointer, and **double-click any point to orbit around that** instead of the
 model's centre — which is what you want when you are looking at one corner of a
 map. The **iso / top / front / side** buttons reframe the whole model, and a

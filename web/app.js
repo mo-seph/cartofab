@@ -67,6 +67,13 @@ handle.on('drag', (e) => {
   drawRect();
 });
 handle.on('dragend', () => { save(); checkCoverage(); refreshOsmData(false); });
+function stopFollowing() {
+  if (!$('followView').checked) return;
+  $('followView').checked = false;         // a hand-placed region stays put
+  status('follow view off — the region is pinned');
+  save();
+}
+handle.on('dragstart', stopFollowing);
 map.on('dblclick', (e) => {
   state.lat = e.latlng.lat; state.lon = e.latlng.lng;
   syncCentreInputs(); handle.setLatLng(e.latlng); drawRect(); save(); checkCoverage();
@@ -143,6 +150,7 @@ const handles = HANDLES.map(([id, sx, sy]) => {
 let dragCtx = null;
 
 function beginResize(sx, sy) {
+  stopFollowing();                 // resizing by hand pins the region
   const { w, h } = dims();
   const hw = w / 2, hh = h / 2;
   const [alat, alon] = pageToLatLng(-sx * hw, -sy * hh);
@@ -258,7 +266,7 @@ function syncHeightField() {
   refreshOsmData(false);
 }));
 
-$('fit').addEventListener('click', () => {
+function fitToView() {
   const b = map.getBounds(), c = b.getCenter();
   state.lat = c.lat; state.lon = c.lng;
   const m = metresPerDegree(c.lat);
@@ -274,7 +282,17 @@ $('fit').addEventListener('click', () => {
   }
   syncCentreInputs(); handle.setLatLng([state.lat, state.lon]);
   drawRect(); save(); checkCoverage(); refreshOsmData(false);
+}
+
+$('fit').addEventListener('click', fitToView);
+
+/* Follow keeps the capture inside whatever the map is showing. It only reads
+   the map, never moves it, so there is no feedback loop with panTo. */
+$('followView').addEventListener('change', () => {
+  if ($('followView').checked) fitToView();
+  save();
 });
+map.on('moveend', () => { if ($('followView').checked) fitToView(); });
 
 /* ------------------------------------------------------------------- search */
 async function search() {
@@ -323,20 +341,25 @@ async function checkCoverage() {
     const best = d.best_resolution_m;
     const have = (d.sources || []).filter((x) => x.available !== false);
     const partial = d.partial || [];
-    let html = `<b>finest worth asking for here: ${best} m</b>`
-      + ` <button class="mini" id="useBest">use it</button>`
-      + '<br>' + (have.length
-        ? have.map((x) => x.label).join(', ')
-        : 'no source covers this area');
+    $('demNote').innerHTML = `<b>finest available here: ${best} m</b>`
+      + ` <button class="mini" id="useBest">use it</button>`;
+
+    // The rundown of which sources cover this area is reference material, so
+    // it sits behind the (i) rather than growing the panel on every map move.
+    let info = have.length
+      ? '<b>Covering this area:</b> ' + have.map((x) => x.label).join(', ')
+      : '<b>No source covers this area.</b>';
     // A source that only clips a corner is not "available here": saying so
     // would send you sampling at 1 m for a map that is 30 m nearly everywhere.
     for (const x of partial) {
-      html += `<br>${x.label} reaches ${x.native_m} m but covers only `
+      info += `||${x.label} reaches ${x.native_m} m but covers only `
             + `${Math.round(x.share * 100)}% of this area, so it is not the`
-            + ' limit that matters';
+            + ' limit that matters.';
     }
-    html += '<br>the Result panel reports what each one actually contributed';
-    $('demNote').innerHTML = html;
+    info += '||Going finer than the source changes the drawing but adds no'
+          + ' information. The Result panel reports what each source actually'
+          + ' contributed.';
+    $('resInfo').dataset.help = info;
     const ub = $('useBest');
     if (ub) ub.addEventListener('click', () => {
       $('res').value = best;
@@ -612,13 +635,18 @@ function hideHelp() {
   document.querySelectorAll('button.help.on').forEach((b) => b.classList.remove('on'));
 }
 
-document.querySelectorAll('button.help').forEach((btn) => {
-  btn.addEventListener('click', (e) => {
-    e.preventDefault(); e.stopPropagation();
-    if (btn.classList.contains('on')) hideHelp(); else showHelp(btn);
-  });
+// delegated: help and info dots are built dynamically too (the download
+// offer, for one), and binding once at load would leave those dead
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest && e.target.closest('button.help');
+  if (!btn) return;
+  e.preventDefault(); e.stopPropagation();
+  if (btn.classList.contains('on')) hideHelp(); else showHelp(btn);
 });
 document.addEventListener('click', (e) => {
+  // both handlers sit on document, so stopPropagation in the opener does not
+  // reach this one — without the guard every popover closed as it opened
+  if (e.target.closest && e.target.closest('button.help')) return;
   if (!helpBox.contains(e.target)) hideHelp();
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideHelp(); });
@@ -707,6 +735,8 @@ async function refreshOsmData(offerIfMissing = false, reason) {
 
 let offerReason = 'Download this area for offline use.';
 
+const EXTEND_HELP = 'Extending re-imports the same extract with its clip widened to cover both the area you already had and this one, keeping every layer the store was imported with. Nothing you have is lost.||If the source file was kept it re-imports straight away; otherwise it downloads once more first. Re-importing takes about as long as the first import did.||Extracts are clipped on import to keep them small, which is why a country-sized download can still miss a town 40 km away.';
+
 function showOffer(cands, error) {
   openOsmDetails();
   const box = $('osmOffer');
@@ -753,7 +783,9 @@ function showExtend(x) {
   const box = $('osmOffer');
   const has = new Set(x.layers || []);
   const all = x.layers == null;
-  box.innerHTML = `<b>Widen ${x.name} to cover this area</b><br>`
+  box.innerHTML = `<b>Widen ${x.name} to cover this area</b>`
+    + `<button type="button" class="help info" data-title="Extending an extract"`
+    + ` data-help="${EXTEND_HELP}" aria-label="What does extending do?">i</button><br>`
     + (x.has_source
       ? 'The source file was kept, so this re-imports without downloading anything.'
       : 'The source file was not kept, so it has to be downloaded again first.')
@@ -765,9 +797,7 @@ function showExtend(x) {
     + ' km around here</label>'
     + `<label><input type="checkbox" id="dlKeep"${x.has_source ? ' checked' : ''}>`
     + ' keep the source file for future extends</label>'
-    + '<div class="hintline">The area you already have is kept — the new clip '
-    + 'covers both. Re-importing takes about as long as the first import did.'
-    + '</div></div>'
+    + '</div>'
     + `<div class="cands"><div class="cand"><span>${x.name}</span>`
     + `<em>currently ${mb(x.mb)}</em>`
     + `<button class="mini" data-extend="${x.id}">extend</button></div></div>`;
@@ -909,16 +939,26 @@ function outputMode() {
 
 function applyMode() {
   const m = outputMode();
+  // The two tab bodies are different heights, so swapping them shifts
+  // everything below and the panel appears to jump. Pin the tab bar where it
+  // is on screen and put the scroll back afterwards.
+  const panel = $('panel');
+  const bar = document.querySelector('.outputs');
+  const before = bar ? bar.getBoundingClientRect().top : null;
   document.querySelectorAll('[data-mode]').forEach((el) => {
     el.classList.toggle('hidden', el.dataset.mode !== m);
   });
   $('preview').classList.toggle('hidden', m !== 'svg');
   $('mesh3d').classList.toggle('hidden', m !== 'mesh');
   $('tripHint').textContent = m === 'mesh'
-    ? 'drag orbit · shift-drag pan · scroll zoom · double-click to re-centre'
+    ? 'drag orbit · ⇧ or ⌘ drag pan · scroll zoom · double-click to re-centre'
     : 'click or drag over paths to build a trip';
   $('export').textContent = m === 'mesh' ? 'Download mesh' : 'Download SVG';
   if (m === 'mesh' && window.MeshViewer) setTimeout(() => window.MeshViewer.resize(), 60);
+  if (before !== null) {
+    const after = bar.getBoundingClientRect().top;
+    panel.scrollTop += after - before;
+  }
   meshEstimate();
   save();
 }
@@ -1184,7 +1224,7 @@ const FIELDS = ['widthKm', 'heightKm', 'aspect', 'rot', 'demSource', 'osmSource'
   'waterMm', 'flatTol', 'maxHeight', 'backplateW', 'backplateH', 'backplateMm',
   'tripMm', 'tripWmm'];
 const CHECKS = ['frame', 'labelsOn', 'seaFill', 'indexOn', 'waterMask', 'includeSea',
-  'meshWater', 'meshBuildings', 'meshRoads', 'meshTrip', 'backplate'];
+  'meshWater', 'meshBuildings', 'meshRoads', 'meshTrip', 'backplate', 'followView'];
 
 function save() {
   const o = { lat: state.lat, lon: state.lon, zoom: map.getZoom() };
