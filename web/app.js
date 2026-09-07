@@ -495,7 +495,7 @@ async function generate() {
   state.busy = true;
   $('generate').disabled = true;
   if (outputMode() === 'mesh') {
-    try { await generateMesh(); }
+    try { await generateMesh(); showOutputPane(); }
     finally { state.busy = false; $('generate').disabled = false; save(); }
     return;
   }
@@ -513,6 +513,7 @@ async function generate() {
     const secs = ((performance.now() - t0) / 1000).toFixed(1);
     status(data.warnings.length ? data.warnings.join(' · ') : `done in ${secs}s`,
       data.warnings.length ? 'warn' : '');
+    showOutputPane();
     const shaky = data.osm && (data.osm.failed || data.osm.degraded);
     refreshOsmData(!!shaky, data.osm && data.osm.failed
       ? 'Overpass is unavailable for this area.'
@@ -1112,6 +1113,20 @@ function applyLayout() {
     (layout.hidden.map || layout.hidden.preview) ? 'none' : '';
   try { localStorage.setItem(LAYOUT_KEY, JSON.stringify(layout)); } catch (e) { }
   if (map) setTimeout(() => map.invalidateSize(), 60);
+}
+
+/* After a render the output is the thing you want to look at, and the map has
+   done its job. Only ever opens the preview and closes the map — it never
+   reopens the map or touches the controls, so it cannot undo a layout you set
+   up deliberately. */
+function showOutputPane() {
+  if (!layout.hidden.preview && layout.hidden.map) return;   // already there
+  layout.hidden.preview = false;
+  layout.hidden.map = true;
+  applyLayout();
+  if (outputMode() === 'mesh' && window.MeshViewer) {
+    setTimeout(() => window.MeshViewer.resize(), 60);
+  }
 }
 
 function togglePane(k) {

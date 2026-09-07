@@ -120,6 +120,34 @@ Croabh Haven, which was verified correct. So it does not guess: when the side it
 marks as water sits higher than the other, it draws nothing and tells you why.
 Widen the frame so the coast runs across it, or use the elevation threshold.
 
+### Reading the coastline wider than the map
+
+Orientation is the only thing that knows which side of a coastline is the sea,
+and it is exact where the line properly divides the frame. Two things break that
+on a small capture: the coast merely clips a corner, so the vote settles on the
+wrong side; or the box sits entirely in the water and contains no coastline at
+all, so there is nothing to vote on and nothing is drawn.
+
+Both are fixed by giving the line more room. The coastline is fetched over a box
+three times the width of the map — a concentric region shares the page frame
+exactly, so no coordinates have to be transformed — the sea is worked out there,
+and the answer is intersected back to the region. Measured over eighteen small
+captures around the Croabh Haven coast, at 600 m and 1200 m square:
+
+```
+fixed 3    unchanged 15    broken 0
+```
+
+All three that changed were squares lying out in the bay, which previously
+returned nothing and now correctly come back as 100% sea. Layers arrive clipped
+to the region, so this needs its own fetch; it asks for the coastline alone,
+which is small, and the span is capped so a tiny capture cannot turn into a huge
+Overpass query.
+
+It does not rescue every case. Where the coast clips a corner *and* the terrain
+disagrees, the sanity check still refuses rather than handing back a confidently
+wrong sea — Glencoe is unchanged.
+
 ### Water meeting at a point
 
 Two water bodies that touch at a single corner are perfectly legal geometry —

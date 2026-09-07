@@ -340,8 +340,12 @@ async def collect(spec: Spec) -> dict:
     except RuntimeError as exc:
         raise HTTPException(502, str(exc)) from exc
 
+    coast = await _coast_features(spec, warnings) \
+        if spec._needs_coastline() else []
+
     return {"region": region, "dem": dem_obj, "dem_info": dem_info,
             "elevation": stats, "osm": list(of), "osm_info": osm_info,
+            "coast": coast,
             "warnings": warnings, "timings": timings, "t0": t0}
 
 
@@ -373,7 +377,8 @@ def render_svg(spec: Spec, c: dict, interactive: bool) -> dict:
     sea = None
     if spec.include_sea and dem_obj is not None:
         try:
-            sea = _derive_sea(spec, dem_obj, region, feats, warnings)
+            sea = _derive_sea(spec, dem_obj, region, feats, warnings,
+                              c.get("coast"))
         except Exception as exc:                       # noqa: BLE001
             warnings.append(f"could not derive the sea: {exc}")
 
@@ -582,7 +587,44 @@ ROAD_WIDTH_M = {
 }
 
 
-def _derive_sea(spec: "Spec", dem_obj, region, feats: list, warnings: list):
+# How much wider than the map the coastline is read before the sea is cut back
+# to size, and the ceiling on that so a small capture cannot turn into a huge
+# Overpass query.
+SEA_PAD = 3.0
+MAX_SEA_SPAN_M = 60_000.0
+
+
+async def _coast_features(spec: "Spec", warnings: list) -> list:
+    """Coastline over a wider box than the map, in the same page frame.
+
+    Fetched separately because layers come back clipped to the region, and the
+    orientation vote needs the coast to cross the frame rather than clip a
+    corner of it. A concentric region shares the page frame exactly, so nothing
+    has to be transformed."""
+    big = Region(spec.lat, spec.lon,
+                 min(spec.width_m * SEA_PAD, MAX_SEA_SPAN_M),
+                 min(spec.height_m * SEA_PAD, MAX_SEA_SPAN_M),
+                 spec.rotation_deg)
+    store = localosm.find_store(big)
+    try:
+        if store is not None and spec.osm_source != "overpass":
+            return await asyncio.to_thread(
+                localosm.query, store["id"], big, {"coastline"}, simplify_m=0.0)
+        if spec.osm_source == "local":
+            return []                       # local only, and no store reaches
+        feats, _ = await asyncio.wait_for(
+            osm.fetch(big, {"coastline"}, simplify_m=0.0,
+                      per_layer_timeout=OSM_LAYER_TIMEOUT_S),
+            timeout=OSM_DEADLINE_S)
+        return feats
+    except Exception as exc:                           # noqa: BLE001
+        warnings.append(f"could not read the coastline beyond the map ({exc}) "
+                        "— fell back to the part inside it")
+        return []
+
+
+def _derive_sea(spec: "Spec", dem_obj, region, feats: list, warnings: list,
+                coast: list | None = None):
     """The sea, from whichever source the spec asks for.
 
     The coastline is the better answer wherever OSM has one: it is a surveyed
@@ -590,7 +632,12 @@ def _derive_sea(spec: "Spec", dem_obj, region, feats: list, warnings: list):
     100 m blocks — and around an intricate coast the global tiles are simply
     wrong about where the water is."""
     if spec.sea_source == "coastline":
-        sea = water.sea_from_coastline(feats, region, warnings.append, dem_obj)
+        # Prefer the wider read; fall back to what is inside the map if the
+        # extra fetch came back empty.
+        wide = bool(coast)
+        sea = water.sea_from_coastline(
+            coast if wide else feats, region, warnings.append, dem_obj,
+            outer=SEA_PAD if wide else 1.0)
         if sea is not None and dem_obj is not None:
             _warn_sea_disagrees(sea, dem_obj, region, warnings)
         return sea
@@ -692,7 +739,8 @@ def render_mesh(spec: Spec, c: dict) -> tuple[list, dict]:
     sea = None
     if spec.include_sea:
         try:
-            sea = _derive_sea(spec, dem, region, c["osm"], warnings)
+            sea = _derive_sea(spec, dem, region, c["osm"], warnings,
+                              c.get("coast"))
         except Exception as exc:                           # noqa: BLE001
             warnings.append(f"could not derive the sea: {exc}")
 

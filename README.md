@@ -115,8 +115,10 @@ lets a plotter change pens between them.
 inland and wherever the data is clean; *OSM coastline* uses the surveyed line
 instead, which is far crisper and needs no threshold. Over open water the global
 30 m tiles are radar noise rather than a flat plane, so on an intricate coast the
-coastline is usually the right answer — with the caveat that it needs the coast
-to cross the frame.
+coastline is usually the right answer. It is read from a box three times wider
+than the map and then cut back to size, which is what lets it work on a small
+capture: a 600 m square sitting out in a bay contains no coastline at all, and
+used to come back empty.
 
 ### Trip selection
 

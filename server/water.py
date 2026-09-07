@@ -75,7 +75,8 @@ def _face_medians(faces, dem):
     return out
 
 
-def sea_from_coastline(features: list[dict], region, warn=None, dem=None):
+def sea_from_coastline(features: list[dict], region, warn=None, dem=None,
+                       outer: float = 1.0):
     """The sea as OSM draws it, rather than as the elevation grid guesses it.
 
     Thresholding elevation cannot find a coastline in the global tiles: over
@@ -87,9 +88,19 @@ def sea_from_coastline(features: list[dict], region, warn=None, dem=None):
 
     The region boundary closes whatever the coastline leaves open, so the
     result is a proper polygon even where the coast merely crosses the frame.
-    Islands come back as holes because they are their own closed ways."""
+    Islands come back as holes because they are their own closed ways.
+
+    `outer` widens the box the sea is worked out on, and the answer is cut back
+    to the region afterwards. Orientation only decides land from sea where the
+    coast properly crosses the frame; on a small capture it often just clips a
+    corner, the vote settles on the wrong side, and the whole thing is refused.
+    Giving the line a wider box to divide fixes that without changing what you
+    asked for. `features` must reach that far — a concentric region shares this
+    one's page frame, so their coordinates are directly comparable."""
     hw, hh = region.width_m / 2, region.height_m / 2
     box = shapely.box(-hw, -hh, hw, hh)
+    work = (box if outer <= 1.0
+            else shapely.box(-hw * outer, -hh * outer, hw * outer, hh * outer))
     lines = []
     for f in features:
         if f.get("layer") != "coastline":
@@ -97,7 +108,7 @@ def sea_from_coastline(features: list[dict], region, warn=None, dem=None):
         pts = np.asarray(f.get("pts", ()), dtype=float)
         if len(pts) < 2:
             continue
-        clipped = LineString(pts).intersection(box)
+        clipped = LineString(pts).intersection(work)
         if clipped.is_empty:
             continue
         lines += [g for g in _lines_of(clipped) if g.length > 0]
@@ -107,7 +118,7 @@ def sea_from_coastline(features: list[dict], region, warn=None, dem=None):
                  "it — either there is none here, or the layer was not fetched")
         return None
 
-    faces = list(polygonize(unary_union(lines + [box.boundary])))
+    faces = list(polygonize(unary_union(lines + [work.boundary])))
     if not faces:
         if warn is not None:
             warn("the OSM coastline here does not close into any area")
@@ -159,6 +170,14 @@ def sea_from_coastline(features: list[dict], region, warn=None, dem=None):
     out = unary_union(sea)
     if out.is_empty:
         return None
+    if outer > 1.0:
+        # worked out wide, delivered to size
+        out = out.intersection(box)
+        if out.is_empty:
+            if warn is not None:
+                warn("the coastline nearby does not reach into this area, so "
+                     "no sea was drawn — it is all on one side")
+            return None
     # Where the coastline only clips a corner of the frame rather than dividing
     # it, the vote can settle on the wrong side and hand back a confidently
     # wrong sea — 91% of a mountain valley, at 189 m. Two attempts to repair
