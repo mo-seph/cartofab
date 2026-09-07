@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Start topofab on http://127.0.0.1:8724
+# Start cartofab on http://127.0.0.1:8724
 set -e
 cd "$(dirname "$0")"
 [ -d .venv ] || { cat <<'MSG'

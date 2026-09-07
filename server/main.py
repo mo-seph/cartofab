@@ -1,4 +1,4 @@
-"""topofab — local web app for contour maps and printable terrain."""
+"""cartofab — local web app for contour maps and printable terrain."""
 from __future__ import annotations
 
 import asyncio
@@ -59,7 +59,7 @@ MAX_DEM_PIXELS = 60_000_000
 OSM_DEADLINE_S = 60.0
 OSM_LAYER_TIMEOUT_S = 25.0
 
-app = FastAPI(title="topofab")
+app = FastAPI(title="cartofab")
 
 
 class Spec(BaseModel):
@@ -1206,7 +1206,7 @@ async def api_search(q: str, limit: int = 8):
         r = await c.get(
             "https://nominatim.openstreetmap.org/search",
             params={"q": q, "format": "jsonv2", "limit": limit},
-            headers={"User-Agent": "topofab/0.1 (local plotter tool)"},
+            headers={"User-Agent": "cartofab/0.1 (local plotter tool)"},
             timeout=30.0)
     if r.status_code != 200:
         raise HTTPException(502, "geocoder unavailable")

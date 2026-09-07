@@ -617,7 +617,7 @@ def write_stl(objects: list[MeshObject]) -> bytes:
         tris.append(o.verts[o.faces])
     t = np.concatenate(tris) if tris else np.zeros((0, 3, 3), np.float32)
     n = len(t)
-    out = bytearray(b"topofab terrain mesh".ljust(80, b" "))
+    out = bytearray(b"cartofab terrain mesh".ljust(80, b" "))
     out += struct.pack("<I", n)
     rec = np.zeros((n, 50), dtype=np.uint8)
     v = t.astype("<f4")
@@ -635,8 +635,8 @@ def write_obj(objects: list[MeshObject], mtl_name="model.mtl"
               ) -> tuple[str, str]:
     """OBJ with one named object per part and an MTL giving each a colour —
     which is what lets a slicer treat them as separate, paintable bodies."""
-    obj = [f"# topofab\nmtllib {mtl_name}\n"]
-    mtl = ["# topofab\n"]
+    obj = [f"# cartofab\nmtllib {mtl_name}\n"]
+    mtl = ["# cartofab\n"]
     base = 1
     for o in objects:
         r, g, b = o.colour
@@ -672,7 +672,7 @@ def write_3mf(objects: list[MeshObject]) -> bytes:
     parts = ['<?xml version="1.0" encoding="UTF-8"?>\n'
              '<model unit="millimeter" xml:lang="en-US" '
              'xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">'
-             '<metadata name="Application">topofab</metadata>'
+             '<metadata name="Application">cartofab</metadata>'
              f'<resources><basematerials id="1">{mats}</basematerials>']
     for i, o in enumerate(objects):
         v = (o.verts.astype(np.float64) + shift)

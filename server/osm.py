@@ -47,7 +47,7 @@ def _payload_problem(data: object) -> str | None:
     if not _TS.match(ts):
         return f"database not loaded (timestamp {ts!r})"
     return None
-UA = {"User-Agent": "topofab/0.1 (local plotter tool)"}
+UA = {"User-Agent": "cartofab/0.1 (local plotter tool)"}
 OVERPASS_TIMEOUT = 25.0
 
 # Layers whose features describe an area rather than a route. These get

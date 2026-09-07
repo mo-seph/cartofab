@@ -39,7 +39,7 @@ from pyproj import Transformer
 from .cache import cache_get, cache_put
 from .geo import Region
 
-UA = {"User-Agent": "topofab/0.1 (local plotter tool)"}
+UA = {"User-Agent": "cartofab/0.1 (local plotter tool)"}
 MERC_SPAN = 20037508.342789244
 
 IGN_WMS = "https://data.geopf.fr/wms-r/wms"

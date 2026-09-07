@@ -1,4 +1,4 @@
-/* topofab front-end: Leaflet region picker + live SVG preview. */
+/* cartofab front-end: Leaflet region picker + live SVG preview. */
 'use strict';
 
 const $ = (id) => document.getElementById(id);

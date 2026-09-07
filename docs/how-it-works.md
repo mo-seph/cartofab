@@ -1,4 +1,4 @@
-# How topofab works
+# How cartofab works
 
 Notes on the internals: where the data comes from, what happens to it, and the
 things that turned out not to be true. Most of these sections exist because

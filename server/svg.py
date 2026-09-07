@@ -148,7 +148,7 @@ def render(features: list[dict], region: Region, *,
 def _describe(region: Region, meta: dict | None) -> str:
     m = meta or {}
     bits = [
-        f"topofab {datetime.now(timezone.utc):%Y-%m-%d %H:%M UTC}",
+        f"cartofab {datetime.now(timezone.utc):%Y-%m-%d %H:%M UTC}",
         f"centre {region.lat:.5f},{region.lon:.5f}",
         f"{region.width_m / 1000:.2f} x {region.height_m / 1000:.2f} km",
     ]

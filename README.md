@@ -1,4 +1,4 @@
-# topofab
+# cartofab
 
 Contour maps for a pen plotter, and terrain models for a 3D printer, from real
 elevation data. Pick an area on a map, and get either a layered SVG sized in

@@ -31,7 +31,7 @@ from .osm import AREA_LAYERS, LAYER_QUERIES, _classify, _num
 DATA_DIR = Path(__file__).parent.parent / "osmdata"
 INDEX_URL = "https://download.geofabrik.de/index-v1.json"
 INDEX_TTL = 14 * 24 * 3600
-UA = {"User-Agent": "topofab/0.1 (local plotter tool)"}
+UA = {"User-Agent": "cartofab/0.1 (local plotter tool)"}
 
 # Only these come from ways; the rest are areas or nodes. Without this a way
 # tagged place=island would be filed as a "places" line.
