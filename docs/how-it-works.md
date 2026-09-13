@@ -148,6 +148,41 @@ It does not rescue every case. Where the coast clips a corner *and* the terrain
 disagrees, the sanity check still refuses rather than handing back a confidently
 wrong sea — Glencoe is unchanged.
 
+### The check that read the map upside down
+
+`y_coords` ascends while row 0 of the elevation grid is north, so the two only
+line up after `np.flipud`. The contour generator, the mesh sampler and the
+elevation-threshold sea all do that. Two helpers did not: the check that decides
+whether the coastline vote picked the right side, and the warning that reports
+how far the elevation data disagrees with it. Both sampled the **north–south
+mirror** of the polygon they were given.
+
+It hid because it is invisible on anything roughly symmetric, and it fails
+towards refusal rather than towards nonsense. At the Cobbler it put the mirror of
+Loch Long on the Arrochar Alps, so the check saw water sitting at 447 m against
+land at 235 m, concluded the vote had picked the wrong side, and drew no sea at
+all — the loch stayed as raw elevation noise, a granulated hump in the model and
+an unfilled outline on the map.
+
+Glencoe was refused for the same reason, which means the earlier conclusion
+recorded here — that the terrain there genuinely contradicted the vote — was
+itself a product of the bug. Both work now.
+
+### Water that is not where the ground says it is
+
+At Loch Long the elevation data is simply wrong. The global tiles read the loch
+surface at a median of **104 m**, because a narrow sea loch is an SRTM void and
+the fill interpolates from 800 m walls on either side; only a patch at the head
+carries real bathymetry. Open sea at Croabh Haven reads 5.8 m for comparison.
+
+OSM is right and the grid is wrong, so the sea is flattened to sea level and the
+model gains a cliff at the shoreline where the grid thought there was hillside.
+That is the honest answer — Loch Long really is at sea level, and the mountains
+really do rise 880 m out of it — but it is worth knowing before printing, which
+is what the disagreement warning is for. Raising the sea level to the loch's own
+apparent height instead gives a surface flush with its banks: wrong by 104 m, and
+indistinguishable in a relief model.
+
 ### Water meeting at a point
 
 Two water bodies that touch at a single corner are perfectly legal geometry —

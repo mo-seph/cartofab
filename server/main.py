@@ -544,6 +544,26 @@ def _unpinch(parts: list, frame) -> list:
     return [g for g in out if not g.is_empty]
 
 
+def _clear_of(parts: list, blockers: list, frame) -> list:
+    """Pull `parts` back from `blockers` so their extrusions cannot weld.
+
+    A burn running into a loch touches the loch's slab at a point. Both are
+    water, but they are built separately — one levelled, one draped — and two
+    slabs sharing a single vertical edge is non-manifold, which reports the
+    whole water object as open. Subtracting a hair around the flat bodies keeps
+    the streams clear; the gap is the same 0.002 mm on the model as _unpinch."""
+    if not blockers or not parts:
+        return parts
+    eps = UNPINCH_WELD_MULTIPLE * mesh.WELD_MM / frame.scale
+    keep_out = shapely.union_all(blockers).buffer(eps)
+    out = []
+    for g in parts:
+        if g.intersects(keep_out):
+            g = g.difference(keep_out)
+        out += [q for q in _polys_of(g) if q.area > eps * eps]
+    return out
+
+
 def _polys_of(geom):
     """Every Polygon in a geometry, whatever container it arrived in."""
     if geom is None or geom.is_empty:
@@ -651,7 +671,8 @@ def _warn_sea_disagrees(sea, dem_obj, region, warnings: list) -> None:
     ground the DEM thinks is 40 m high becomes a cliff at the shoreline."""
     X, Y = np.meshgrid(dem_obj.x_coords, dem_obj.y_coords)
     inside = shapely.contains_xy(sea, X.ravel(), Y.ravel()).reshape(X.shape)
-    z = np.asarray(dem_obj.z, dtype=float)
+    # ascending y, so the grid must be flipped to line up with the mask
+    z = np.flipud(np.asarray(dem_obj.z, dtype=float))
     wet = inside & np.isfinite(z)
     if not wet.any():
         return
@@ -932,6 +953,11 @@ def render_mesh(spec: Spec, c: dict) -> tuple[list, dict]:
         drape = mesh.bilinear_sampler(surface, xs, ys)
         geoms = [g for g in (_simplify_area(g, frame, spec.nozzle_mm)
                              for g, _m, _s in flowing) if g is not None]
+        # Streams meet each other at confluences as well as meeting the flat
+        # bodies, and either contact welds two slabs onto one vertical edge.
+        geoms = _unpinch(_clear_of([q for g in geoms for q in _polys_of(g)],
+                                   [g for g, _m, _l in water_polys], frame),
+                         frame)
         o = mesh.extrude(geoms, lambda p: None, frame, 0.0, "water",
                          (0.16, 0.45, 0.70), sink_mm=spec.water_mm + 0.05,
                          sample=drape,

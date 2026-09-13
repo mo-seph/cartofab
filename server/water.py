@@ -66,7 +66,11 @@ def _face_medians(faces, dem):
     if dem is None:
         return None
     X, Y = np.meshgrid(dem.x_coords, dem.y_coords)
-    z = np.asarray(dem.z, dtype=float)
+    # y_coords ascends while row 0 of z is north, so z has to be flipped to
+    # match — exactly as every other consumer does. Pairing them unflipped
+    # samples the north-south mirror of the polygon, which is how a sea loch
+    # came back reading 447 m.
+    z = np.flipud(np.asarray(dem.z, dtype=float))
     out = []
     for f in faces:
         m = shapely.contains_xy(f, X.ravel(), Y.ravel()).reshape(X.shape)

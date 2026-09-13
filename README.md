@@ -120,6 +120,11 @@ than the map and then cut back to size, which is what lets it work on a small
 capture: a 600 m square sitting out in a bay contains no coastline at all, and
 used to come back empty.
 
+Where the elevation data disagrees with the coastline you are told, because the
+water is flattened to sea level and that ground becomes a cliff. Some of it is
+badly wrong: a narrow sea loch is a void in the source data, and Loch Long comes
+back at a median of 104 m.
+
 ### Trip selection
 
 Click or drag over paths in the SVG preview to build a route. The chips choose

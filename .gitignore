@@ -7,3 +7,5 @@ osmdata/
 .DS_Store
 *.bak
 .claude/
+build/
+*.egg-info/
