@@ -661,7 +661,20 @@ def _derive_sea(spec: "Spec", dem_obj, region, feats: list, warnings: list,
         if sea is not None and dem_obj is not None:
             _warn_sea_disagrees(sea, dem_obj, region, warnings)
         return sea
-    return _sea_or_warn(dem_obj, spec.sea_level, region, warnings)
+
+    sea = _sea_or_warn(dem_obj, spec.sea_level, region, warnings)
+    # Finding a shore by elevation fails badly on exactly the coasts worth
+    # drawing, and it fails quietly — a handful of specks rather than nothing,
+    # so the map comes back with a coastline drawn and nothing inside it. If
+    # OSM has a surveyed line right here, say so rather than let it look broken.
+    area = region.width_m * region.height_m
+    got = 0.0 if sea is None or sea.is_empty else sea.area / area
+    if got < 0.02 and any(f.get("layer") == "coastline" for f in feats):
+        warnings.append(
+            "there is a surveyed OSM coastline in this area and the elevation "
+            "threshold barely found any water — set \u201cSea from\u201d to "
+            "the coastline to use it")
+    return sea
 
 
 def _warn_sea_disagrees(sea, dem_obj, region, warnings: list) -> None:
